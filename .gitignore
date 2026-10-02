@@ -1,0 +1,43 @@
+# 환경변수 / 비밀값
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# DB (SQLite)
+*.db
+*.sqlite
+*.sqlite3
+
+# 모델 가중치 / 체크포인트 (Hugging Face Hub 비공개 저장소에서 관리)
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+
+# 상담 데이터 원본
+data/raw/
+model/**/data/
+
+# Vercel
+.vercel/
+
+# OS / 에디터
+.DS_Store
+.idea/
+.vscode/
