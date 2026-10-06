@@ -1,0 +1,14 @@
+# CodeRabbit 설정: https://docs.coderabbit.ai/guides/configure-coderabbit
+language: ko-KR
+
+reviews:
+  profile: chill
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!**/*.lock"
+    - "!**/package-lock.json"
+
+chat:
+  auto_reply: true
