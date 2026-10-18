@@ -1,0 +1,96 @@
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from ctrs_judge.client import Completion
+from ctrs_judge.conversation import load_conversations, parse_conversation
+from ctrs_judge.parse import parse_response
+from ctrs_judge.prompts import load_prompts
+from ctrs_judge.runner import run
+
+CONV = {"conversation_id": "c1", "turns": [
+    {"role": "client", "text": "요즘 잠이 안 와요."}, {"role": "therapist", "text": "많이 힘드시겠어요."}]}
+
+
+class ParseTest(unittest.TestCase):
+    def test_first_comma_only(self):
+        p = parse_response("4, Good reflection, but missed subtle cues, overall fine.")
+        self.assertTrue(p.ok)
+        self.assertEqual(p.score, 4)
+        self.assertEqual(p.explanation, "Good reflection, but missed subtle cues, overall fine.")
+
+    def test_rejects_bad(self):
+        for raw in ["", None, "no comma here", "7, too high", "4.5, float", "Score: 4, prefix", "-1, neg", "four, word"]:
+            self.assertFalse(parse_response(raw).ok, raw)
+
+    def test_zero_ok(self):
+        self.assertEqual(parse_response("0, none").score, 0)
+
+
+class PromptTest(unittest.TestCase):
+    def test_real_prompts_load_and_render(self):
+        items = load_prompts()
+        self.assertGreaterEqual(len(items), 4)
+        for it in items:
+            out = it.render("Client: hi")
+            self.assertIn("Client: hi", out)
+            self.assertNotIn("{conversation}", out)
+
+    def test_new_file_adds_item(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "a.txt").write_text("x {conversation}")
+            self.assertEqual([i.item for i in load_prompts(d)], ["a"])
+            (Path(d) / "b.txt").write_text("y {conversation} {other}")
+            items = load_prompts(d)
+            self.assertEqual([i.item for i in items], ["a", "b"])
+            self.assertIn("{other}", items[1].render("T"))  # 다른 중괄호 보존
+
+    def test_missing_placeholder(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "a.txt").write_text("no placeholder")
+            with self.assertRaises(ValueError):
+                load_prompts(d)
+
+
+class ConversationTest(unittest.TestCase):
+    def test_to_text(self):
+        self.assertEqual(parse_conversation(CONV).to_text(), "Client: 요즘 잠이 안 와요.\nTherapist: 많이 힘드시겠어요.")
+
+    def test_invalid(self):
+        with self.assertRaises(ValueError):
+            parse_conversation({"conversation_id": "x", "turns": [{"role": "bot", "text": "a"}]})
+
+
+class RunnerTest(unittest.TestCase):
+    def test_run_resume_and_failures(self):
+        calls = []
+        responses = iter(["4, ok, fine", "garbage"])
+
+        def fake(prompt):
+            calls.append(prompt)
+            return Completion(next(responses), "m-snap", 100, 0, 10, 0.1, 0)
+
+        with tempfile.TemporaryDirectory() as d:
+            inp = Path(d) / "in.jsonl"
+            inp.write_text(json.dumps(CONV, ensure_ascii=False) + "\n")
+            convs = load_conversations(inp)
+            items = load_prompts()[:2]
+            cfg = {"temperature": 0, "input_usd_per_million": 1, "output_usd_per_million": 1}
+            out = Path(d) / "out.jsonl"
+            stats = run(convs, items, {"m": (cfg, fake)}, out, workers=1)
+            self.assertEqual((stats["parsed"], stats["parse_failed"]), (1, 1))
+            rows = [json.loads(l) for l in out.read_text().splitlines()]
+            self.assertEqual(rows[0]["score"], 4)
+            self.assertEqual(rows[0]["explanation"], "ok, fine")
+            self.assertIn("많이 힘드시겠어요", rows[0]["conversation"])
+            self.assertEqual(rows[1]["raw_response"], "garbage")  # 실패 원문 보존
+            # 재실행하면 완료분 건너뜀
+            self.assertEqual(run(convs, items, {"m": (cfg, fake)}, out, workers=1)["total"], 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
