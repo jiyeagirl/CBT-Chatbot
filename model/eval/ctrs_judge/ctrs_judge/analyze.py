@@ -7,6 +7,8 @@ import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
+from .perturb import EXPECTED_ITEMS
+
 ITEM_KO = {
     "general_1_understanding": "이해",
     "general_2_interpersonal_effectiveness": "대인관계",
@@ -142,19 +144,30 @@ def summarize(rows: list[dict]) -> str:
     broken = [c for c in convs if meta[c].get("perturbation") not in (None, "", "original")]
     if broken:
         t, per_judge = [], defaultdict(lambda: {"exp": [], "oth": []})
+        dose = defaultdict(list)  # (유형, 모델, 정도) -> 기대 항목 평균 변화
+        dose_oth = defaultdict(list)
         for c in broken:
-            base, kind, exp = meta[c].get("base_id"), meta[c]["perturbation"], meta[c].get("expected_drop")
+            base, kind = meta[c].get("base_id"), meta[c]["perturbation"]
+            sev = meta[c].get("severity", 100)
+            exp_items = EXPECTED_ITEMS.get(kind) or ([meta[c]["expected_drop"]] if meta[c].get("expected_drop") else [])
             for j in judges:
-                if exp is None or (base, j, exp) not in means or (c, j, exp) not in means:
+                exp = [i for i in exp_items if (base, j, i) in means and (c, j, i) in means]
+                if not exp:
                     continue
-                o, b = means[(base, j, exp)], means[(c, j, exp)]
+                d_exp = [means[(c, j, i)] - means[(base, j, i)] for i in exp]
                 others = [means[(c, j, i)] - means[(base, j, i)] for i in items
-                          if i != exp and (c, j, i) in means and (base, j, i) in means]
-                per_judge[j]["exp"].append(b - o)
-                per_judge[j]["oth"] += others
-                t.append([c, TYPE_KO.get(kind, kind), j, ko(exp), fmt(o), fmt(b), f"{b - o:+.1f}",
-                          f"{sum(others) / len(others):+.2f}" if others else "-"])
-        out += ["■ 변별력 (원본 대비 망가진 버전, 기대 하락 항목)",
+                          if i not in exp_items and (c, j, i) in means and (base, j, i) in means]
+                dose[(kind, j, sev)].append(sum(d_exp) / len(d_exp))
+                if others:
+                    dose_oth[(kind, j, sev)].append(sum(others) / len(others))
+                if sev == 100:
+                    i0 = exp[0]
+                    t.append([c, TYPE_KO.get(kind, kind), j, "+".join(ko(i) for i in exp), fmt(means[(base, j, i0)]),
+                              fmt(means[(c, j, i0)]), f"{sum(d_exp) / len(d_exp):+.1f}",
+                              f"{sum(others) / len(others):+.2f}" if others else "-"])
+                    per_judge[j]["exp"].append(sum(d_exp) / len(d_exp))
+                    per_judge[j]["oth"] += others
+        out += ["■ 변별력 (정도 100%, 원본 대비 기대 항목 변화)",
                 table(["망가진 대화", "유형", "모델", "기대 항목", "원본", "망가짐", "변화", "다른 항목 평균변화"], t, right_from=4), ""]
         for j, d in per_judge.items():
             e = d["exp"]
@@ -164,6 +177,26 @@ def summarize(rows: list[dict]) -> str:
                 line += f", 나머지 항목 평균 변화 {sum(d['oth']) / len(d['oth']):+.2f}점"
             out.append(line)
         out.append("")
+        sevs = sorted({k[2] for k in dose})
+        if len(sevs) > 1:  # 정도별 점수 변화 (원본 -> 30% -> 60% -> 100%)
+            t = []
+            for kind in [k for k in EXPECTED_ITEMS if any(kk[0] == k for kk in dose)]:
+                for j in judges:
+                    cells = []
+                    for sv in sevs:
+                        v = dose.get((kind, j, sv))
+                        cells.append(f"{sum(v) / len(v):+.1f} (n={len(v)})" if v else "-")
+                    t.append([TYPE_KO.get(kind, kind), j] + cells)
+            allrow = []
+            for j in judges:
+                cells = []
+                for sv in sevs:
+                    v = [x for (kd, jj, s2), vs in dose.items() if jj == j and s2 == sv for x in vs]
+                    o = [x for (kd, jj, s2), vs in dose_oth.items() if jj == j and s2 == sv for x in vs]
+                    cells.append(f"{sum(v) / len(v):+.2f} / {sum(o) / len(o):+.2f}" if v and o else "-")
+                allrow.append(["전체 (기대/나머지)", j] + cells)
+            out += ["■ 정도별 점수 변화 (원본 대비, 기대 항목 평균. 정도가 클수록 더 내려가야 정상)",
+                    table(["유형", "모델"] + [f"{s_}%" for s_ in sevs], t + allrow, right_from=2), ""]
 
     # 7. 일관성 (반복 채점)
     groups = defaultdict(list)

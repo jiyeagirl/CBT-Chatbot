@@ -13,14 +13,16 @@ from typing import Callable
 
 PROMPT_DIR = Path(__file__).resolve().parent.parent / "perturb_prompts"
 
-# 유형 -> 점수 하락을 기대하는 항목
-EXPECTED_DROP = {
-    "repeat": "general_1_understanding",
-    "no_empathy": "general_2_interpersonal_effectiveness",
-    "directive": "general_3_collaboration",
-    "lecture": "CBT_1_guided_discovery",
-    "offtopic": "CBT_2_focus",
+# 유형 -> 점수 하락을 기대하는 항목(앞이 주 항목). 공감 제거는 반영 문장도 함께 지워서 이해도 포함함
+EXPECTED_ITEMS = {
+    "repeat": ["general_1_understanding"],
+    "no_empathy": ["general_2_interpersonal_effectiveness", "general_1_understanding"],
+    "directive": ["general_3_collaboration"],
+    "lecture": ["CBT_1_guided_discovery"],
+    "offtopic": ["CBT_2_focus"],
 }
+EXPECTED_DROP = {k: v[0] for k, v in EXPECTED_ITEMS.items()}
+SEVERITIES = (30, 60, 100)
 RULE_BASED = ("repeat", "no_empathy")
 LLM_BASED = ("lecture", "directive", "offtopic")
 
@@ -159,7 +161,15 @@ def llm_rewrite(turns: list[dict], kind: str, complete: Callable[[str], str], at
     return out
 
 
-def make_variant(base: dict, kind: str, complete: Callable[[str], str] | None = None) -> dict:
+def _blend(orig: list[dict], full: list[dict], frac: float) -> list[dict]:
+    """100% 변형(full) 중 실제로 바뀐 상담자 발화의 frac만 적용함. 대화 전체에 고르게 퍼지게 결정적으로 고름."""
+    cand = [i for i, (o, f) in enumerate(zip(orig, full)) if o["role"] == "therapist" and o["text"] != f["text"]]
+    k = min(len(cand), max(1, round(frac * len(cand)))) if cand else 0
+    chosen = {cand[int((j + 0.5) * len(cand) / k)] for j in range(k)}
+    return [dict(f) if i in chosen else dict(o) for i, (o, f) in enumerate(zip(orig, full))]
+
+
+def make_variant(base: dict, kind: str, complete: Callable[[str], str] | None = None, severity: int = 100) -> dict:
     if kind in RULE_BASED:
         turns = {"repeat": repeat, "no_empathy": no_empathy}[kind](base["turns"])
     elif kind in LLM_BASED:
@@ -167,9 +177,14 @@ def make_variant(base: dict, kind: str, complete: Callable[[str], str] | None = 
                  else _template_rewrite(base["turns"], kind))
     else:
         raise ValueError(f"알 수 없는 유형: {kind}")
+    if not 0 < severity <= 100:
+        raise ValueError("severity는 1~100")
+    if severity < 100:
+        turns = _blend(base["turns"], turns, severity / 100)
     meta = {**base.get("meta", {}), "perturbation": kind, "base_id": base["conversation_id"],
-            "expected_drop": EXPECTED_DROP[kind]}
-    return {"conversation_id": f"{base['conversation_id']}__{kind}", "turns": turns, "meta": meta}
+            "expected_drop": EXPECTED_DROP[kind], "severity": severity}
+    suffix = "" if severity == 100 else f"_p{severity}"  # 100%의 id는 기존과 동일하게 유지
+    return {"conversation_id": f"{base['conversation_id']}__{kind}{suffix}", "turns": turns, "meta": meta}
 
 
 def as_original(base: dict) -> dict:

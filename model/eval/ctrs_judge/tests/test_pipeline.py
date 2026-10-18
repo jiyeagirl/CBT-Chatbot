@@ -124,6 +124,25 @@ class PerturbTest(unittest.TestCase):
         self.assertEqual(e["turns"][0]["text"], "안녕하세요. 반가워요.")  # 인사 유지
         self.assertEqual(self.BASE["turns"][2]["text"], "힘드셨겠어요. 언제부터였나요?")  # 원본 불변
 
+    def test_severity(self):
+        from ctrs_judge.perturb import make_variant
+        turns = []
+        for k in range(10):
+            turns += [{"role": "therapist", "text": f"공감 {k}. 질문 {k}?"}, {"role": "client", "text": f"답 {k}"}]
+        base = {"conversation_id": "s1", "meta": {}, "turns": turns}
+        changed = lambda v: sum(1 for x, y in zip(turns, v["turns"]) if x["text"] != y["text"])  # noqa: E731
+        full, p60, p30 = (make_variant(base, "no_empathy", severity=s) for s in (100, 60, 30))
+        self.assertEqual((changed(full), changed(p60), changed(p30)), (9, 5, 3))  # 첫 인사 제외 9개 중
+        self.assertTrue(full["conversation_id"].endswith("__no_empathy"))   # 100%는 기존 id 유지
+        self.assertTrue(p60["conversation_id"].endswith("__no_empathy_p60"))
+        self.assertEqual(p30["meta"]["severity"], 30)
+        # 30%가 바꾼 발화는 모두 100%에서도 바뀐 발화(부분집합)이고 결정적
+        again = make_variant(base, "no_empathy", severity=30)
+        self.assertEqual(p30["turns"], again["turns"])
+        # 정도와 무관하게 내담자 발화와 원본 불변
+        self.assertEqual([t["text"] for t in p30["turns"] if t["role"] == "client"],
+                         [t["text"] for t in turns if t["role"] == "client"])
+
     def test_template_variants(self):
         from ctrs_judge.perturb import make_variant
         for kind in ("lecture", "directive", "offtopic"):
