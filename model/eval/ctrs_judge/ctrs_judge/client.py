@@ -36,10 +36,11 @@ def cost_usd(cfg: dict, c: Completion) -> float | None:
 
 
 class JudgeClient:
-    def __init__(self, name: str, cfg: dict, attempts: int = 4):
+    def __init__(self, name: str, cfg: dict, attempts: int = 4, instructions: str | None = None):
         from openai import OpenAI  # 지연 import: 테스트는 SDK 없이 가능
 
         self.name, self.cfg, self.attempts = name, cfg, attempts
+        self.instructions = instructions  # 프롬프트 원문은 건드리지 않고 system 지시로만 추가
         self.model_id = cfg.get("model_id", name)  # 스냅샷 고정 ID는 models.json의 model_id에 적음
         base_url = cfg.get("base_url") or os.environ.get(cfg.get("base_url_env", ""), None)
         api_key = os.environ.get(cfg.get("api_key_env", "OPENAI_API_KEY"))
@@ -67,8 +68,11 @@ class JudgeClient:
     def _call(self, prompt: str, temperature: float | None, started: float) -> Completion:
         if self.cfg.get("api", "responses") == "chat":
             kw = {} if temperature is None else {"temperature": temperature}
+            messages = [{"role": "user", "content": prompt}]
+            if self.instructions:
+                messages.insert(0, {"role": "system", "content": self.instructions})
             r = self.client.chat.completions.create(
-                model=self.model_id, messages=[{"role": "user", "content": prompt}],
+                model=self.model_id, messages=messages,
                 max_tokens=self.max_output_tokens, **kw)
             u = r.usage
             return Completion(r.choices[0].message.content or "", r.model, u.prompt_tokens, 0,
@@ -78,6 +82,8 @@ class JudgeClient:
             kw["temperature"] = temperature
         if self.cfg.get("reasoning_effort"):
             kw["reasoning"] = {"effort": self.cfg["reasoning_effort"]}
+        if self.instructions:
+            kw["instructions"] = self.instructions
         r = self.client.responses.create(
             model=self.model_id, input=[{"role": "user", "content": prompt}],
             max_output_tokens=self.max_output_tokens, store=False, **kw)

@@ -18,6 +18,8 @@ from ctrs_judge.prompts import load_prompts
 from ctrs_judge.runner import run
 
 HERE = Path(__file__).resolve().parent
+KO_INSTRUCTIONS = ("평가 설명(explanation)은 반드시 한국어로 작성하세요. "
+                   "출력 형식은 사용자 지시 그대로 '점수, 설명' 한 줄이며, 점수는 숫자만 쓰고 접두어를 붙이지 마세요.")
 
 
 def load_dotenv() -> None:
@@ -43,6 +45,8 @@ def main() -> None:
     ap.add_argument("--runs", type=int, default=1, help="같은 대화 반복 채점 횟수(일관성 측정용)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--out", help="결과 jsonl 경로. 같은 경로로 재실행하면 이어서 진행")
+    ap.add_argument("--lang", choices=["ko", "en"], default="ko",
+                    help="ko(기본): 설명을 한국어로 쓰라는 system 지시를 추가(프롬프트 원문은 그대로). en: 추가 지시 없음")
     ap.add_argument("--dry-run", action="store_true", help="API 호출 없이 호출 수만 출력")
     a = ap.parse_args()
 
@@ -64,8 +68,9 @@ def main() -> None:
         ap.error("OPENAI_API_KEY가 없음(.env에 설정)")
 
     out = Path(a.out) if a.out else HERE / "results" / f"{datetime.now():%Y%m%d_%H%M%S}.jsonl"
-    judges = {m: (cfgs[m], JudgeClient(m, cfgs[m]).complete) for m in a.models}
-    stats = run(convs, items, judges, out, a.runs, a.workers)
+    instructions = KO_INSTRUCTIONS if a.lang == "ko" else None
+    judges = {m: (cfgs[m], JudgeClient(m, cfgs[m], instructions=instructions).complete) for m in a.models}
+    stats = run(convs, items, judges, out, a.runs, a.workers, extra_fields={"system_instruction": instructions})
     print(f"저장: {out}\n{stats}")
 
 

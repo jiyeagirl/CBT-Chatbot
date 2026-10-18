@@ -1,0 +1,204 @@
+"""결과 jsonl 요약. 대화 원문 없이 점수, 일치도, 변별력, 일관성을 한국어로 출력함."""
+from __future__ import annotations
+
+import json
+import statistics as st
+import unicodedata
+from collections import defaultdict
+from pathlib import Path
+
+ITEM_KO = {
+    "general_1_understanding": "이해",
+    "general_2_interpersonal_effectiveness": "대인관계",
+    "general_3_collaboration": "협력",
+    "CBT_1_guided_discovery": "유도된 발견",
+    "CBT_2_focus": "핵심 초점",
+    "CBT_3_strategy": "변화전략",
+}
+ITEM_ORDER = list(ITEM_KO)
+TYPE_KO = {"repeat": "반복", "no_empathy": "공감 제거", "directive": "일방적 지시",
+           "lecture": "설교", "offtopic": "잡담"}
+
+
+def ko(item: str) -> str:
+    return ITEM_KO.get(item, item)
+
+
+def width(s: str) -> int:
+    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in str(s))
+
+
+def pad(s, w: int, right: bool = False) -> str:
+    s = str(s)
+    gap = max(w - width(s), 0)
+    return " " * gap + s if right else s + " " * gap
+
+
+def table(header: list[str], rows: list[list], right_from: int = 1) -> str:
+    cols = list(zip(header, *rows)) if rows else [(h,) for h in header]
+    ws = [max(width(c) for c in col) for col in cols]
+    line = lambda r: "  ".join(pad(c, ws[i], right=i >= right_from) for i, c in enumerate(r))  # noqa: E731
+    return "\n".join([line(header), "  ".join("-" * w for w in ws)] + [line(r) for r in rows])
+
+
+def load_rows(path: Path | str) -> list[dict]:
+    """같은 (대화, judge, 항목, 회차)는 마지막 줄을 사용하되, 성공 줄을 실패 줄로 덮지 않음."""
+    best: dict[tuple, dict] = {}
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        r = json.loads(line)
+        k = (r["conversation_id"], r["judge"], r["item"], r["run_index"])
+        if k in best and best[k].get("api_error") is None and r.get("api_error") is not None:
+            continue
+        best[k] = r
+    return list(best.values())
+
+
+def _items(rows: list[dict]) -> list[str]:
+    present = {r["item"] for r in rows}
+    return [i for i in ITEM_ORDER if i in present] + sorted(present - set(ITEM_ORDER))
+
+
+def score_means(rows: list[dict]) -> dict[tuple, float]:
+    """(대화, judge, 항목) -> 회차 평균 점수 (파싱 성공 건만)"""
+    acc = defaultdict(list)
+    for r in rows:
+        if r.get("parse_ok") and r.get("score") is not None:
+            acc[(r["conversation_id"], r["judge"], r["item"])].append(r["score"])
+    return {k: sum(v) / len(v) for k, v in acc.items()}
+
+
+def fmt(x: float | None) -> str:
+    if x is None:
+        return "-"
+    return str(int(x)) if abs(x - round(x)) < 1e-9 else f"{x:.1f}"
+
+
+def summarize(rows: list[dict]) -> str:
+    out = []
+    judges = sorted({r["judge"] for r in rows})
+    items = _items(rows)
+    means = score_means(rows)
+    meta = {r["conversation_id"]: r.get("meta", {}) for r in rows}
+
+    # 1. 실행 요약
+    t = []
+    for j in judges:
+        rs = [r for r in rows if r["judge"] == j]
+        ok = sum(1 for r in rs if r.get("parse_ok"))
+        api = sum(1 for r in rs if r.get("api_error"))
+        cost = sum(r.get("cost_usd") or 0 for r in rs)
+        secs = [r["seconds"] for r in rs if r.get("seconds")]
+        temp = {r.get("temperature_applied") for r in rs if not r.get("api_error")}
+        t.append([j, len(rs), ok, len(rs) - ok - api, api, f"${cost:.4f}",
+                  f"{sum(secs) / len(secs):.1f}초" if secs else "-",
+                  "미적용" if temp == {None} else ("적용" if None not in temp else "일부")])
+    out += ["■ 실행 요약", table(["모델", "호출", "파싱성공", "파싱실패", "API실패", "비용", "평균시간", "temperature"], t), ""]
+
+    # 2. 점수 분포
+    t = []
+    for j in judges:
+        sc = [r["score"] for r in rows if r["judge"] == j and r.get("parse_ok")]
+        t.append([j] + [sum(1 for s in sc if s == k) for k in range(7)] + [f"{sum(sc) / len(sc):.2f}" if sc else "-"])
+    out += ["■ 점수 분포 (건수)", table(["모델"] + [f"{k}점" for k in range(7)] + ["평균"], t), ""]
+
+    # 3. 항목별 평균
+    t = []
+    for it in items:
+        row = [ko(it)]
+        for j in judges:
+            v = [m for (c, jj, ii), m in means.items() if jj == j and ii == it]
+            row.append(f"{sum(v) / len(v):.2f}" if v else "-")
+        t.append(row)
+    out += ["■ 항목별 평균 점수", table(["항목"] + judges, t), ""]
+
+    # 4. 대화별 점수
+    convs = sorted({r["conversation_id"] for r in rows})
+    if len(convs) <= 40:
+        t = []
+        for c in convs:
+            tag = meta[c].get("perturbation", "")
+            tag = "원본" if tag in ("", "original") else TYPE_KO.get(tag, tag)
+            for j in judges:
+                t.append([c, tag, j] + [fmt(means.get((c, j, it))) for it in items])
+        out += ["■ 대화별 점수", table(["대화", "유형", "모델"] + [ko(i) for i in items], t, right_from=3), ""]
+
+    # 5. 모델 간 일치도
+    for a in range(len(judges)):
+        for b in range(a + 1, len(judges)):
+            ja, jb = judges[a], judges[b]
+            pairs = [(means[(c, ja, i)], means[(c, jb, i)]) for (c, j, i) in means
+                     if j == ja and (c, jb, i) in means]
+            if pairs:
+                d = [x - y for x, y in pairs]
+                same = sum(1 for x in d if abs(x) < 1e-9)
+                near = sum(1 for x in d if abs(x) <= 1 + 1e-9)
+                out += [f"■ 모델 간 일치도 ({ja} vs {jb})",
+                        f"  비교 {len(pairs)}건, 정확히 같음 {same}건({same / len(pairs):.0%}), "
+                        f"±1점 이내 {near}건({near / len(pairs):.0%}), 평균 차이({ja}-{jb}) {sum(d) / len(d):+.2f}점", ""]
+
+    # 6. 변별력 (원본 대비 망가진 버전)
+    broken = [c for c in convs if meta[c].get("perturbation") not in (None, "", "original")]
+    if broken:
+        t, per_judge = [], defaultdict(lambda: {"exp": [], "oth": []})
+        for c in broken:
+            base, kind, exp = meta[c].get("base_id"), meta[c]["perturbation"], meta[c].get("expected_drop")
+            for j in judges:
+                if exp is None or (base, j, exp) not in means or (c, j, exp) not in means:
+                    continue
+                o, b = means[(base, j, exp)], means[(c, j, exp)]
+                others = [means[(c, j, i)] - means[(base, j, i)] for i in items
+                          if i != exp and (c, j, i) in means and (base, j, i) in means]
+                per_judge[j]["exp"].append(b - o)
+                per_judge[j]["oth"] += others
+                t.append([c, TYPE_KO.get(kind, kind), j, ko(exp), fmt(o), fmt(b), f"{b - o:+.1f}",
+                          f"{sum(others) / len(others):+.2f}" if others else "-"])
+        out += ["■ 변별력 (원본 대비 망가진 버전, 기대 하락 항목)",
+                table(["망가진 대화", "유형", "모델", "기대 항목", "원본", "망가짐", "변화", "다른 항목 평균변화"], t, right_from=4), ""]
+        for j, d in per_judge.items():
+            e = d["exp"]
+            down = sum(1 for x in e if x < 0)
+            line = f"  {j}: 기대 항목 평균 변화 {sum(e) / len(e):+.2f}점, 하락한 건 {down}/{len(e)}"
+            if d["oth"]:
+                line += f", 나머지 항목 평균 변화 {sum(d['oth']) / len(d['oth']):+.2f}점"
+            out.append(line)
+        out.append("")
+
+    # 7. 일관성 (반복 채점)
+    groups = defaultdict(list)
+    for r in rows:
+        if r.get("parse_ok"):
+            groups[(r["conversation_id"], r["judge"], r["item"])].append(r["score"])
+    rep = {k: v for k, v in groups.items() if len(v) > 1}
+    if rep:
+        t = []
+        for j in judges:
+            vs = [v for (c, jj, i), v in rep.items() if jj == j]
+            if vs:
+                sd = [st.pstdev(v) for v in vs]
+                t.append([j, len(vs), f"{sum(sd) / len(sd):.2f}",
+                          f"{sum(1 for v in vs if len(set(v)) > 1) / len(vs):.0%}"])
+        out += ["■ 일관성 (같은 대화를 반복 채점)", table(["모델", "반복 조합 수", "평균 표준편차", "점수가 달라진 비율"], t), ""]
+
+    return "\n".join(out).rstrip() + "\n"
+
+
+def explanations(rows: list[dict], conversation_id: str, item: str | None = None) -> str:
+    out = []
+    for r in sorted(rows, key=lambda r: (r["item"], r["judge"], r["run_index"])):
+        if r["conversation_id"] == conversation_id and (item is None or r["item"] == item):
+            out.append(f"[{r['judge']} / {ko(r['item'])} / {r['run_index']}회차] {r.get('score')}점\n  {r.get('explanation') or r.get('api_error')}\n")
+    return "\n".join(out) or "해당하는 결과가 없음\n"
+
+
+def to_csv(rows: list[dict], path: Path | str) -> None:
+    import csv
+    cols = ["conversation_id", "judge", "item", "run_index", "score", "parse_ok", "cost_usd", "seconds",
+            "temperature_applied", "explanation"]
+    with open(path, "w", newline="", encoding="utf-8-sig") as f:  # utf-8-sig: 엑셀에서 한글 깨짐 방지
+        w = csv.writer(f)
+        w.writerow(cols + ["perturbation", "base_id"])
+        for r in sorted(rows, key=lambda r: (r["conversation_id"], r["judge"], r["item"], r["run_index"])):
+            m = r.get("meta", {})
+            w.writerow([r.get(c) for c in cols] + [m.get("perturbation"), m.get("base_id")])

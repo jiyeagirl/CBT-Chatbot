@@ -35,6 +35,7 @@ def run(
     out_path: Path,
     runs: int = 1,
     workers: int = 4,
+    extra_fields: dict | None = None,
 ) -> dict:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     done = load_done(out_path)
@@ -56,7 +57,7 @@ def run(
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "temperature_config": cfg.get("temperature"), "reasoning_effort": cfg.get("reasoning_effort"),
             "score": None, "explanation": None, "raw_response": None, "parse_ok": False,
-            "parse_error": None, "api_error": None, **compute_all(conv),
+            "parse_error": None, "api_error": None, **(extra_fields or {}), **compute_all(conv),
         }
         try:
             c = complete(it.render(text))

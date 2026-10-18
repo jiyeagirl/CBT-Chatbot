@@ -56,8 +56,22 @@ python -m unittest discover -s tests -v                              # API 없�
 - 기본은 대화 5개만 채점함(비용 보호). 전체는 `--all`
 - 같은 `--out`으로 다시 실행하면 완료분은 건너뛰고 이어서 진행함. API 실패 건은 재실행 시 새 줄로 추가되므로, 분석 시 같은 키의 마지막 줄을 사용할 것
 
+## 결과 요약 (한국어, 대화 원문 제외)
+```bash
+python3 summarize.py results/run1.jsonl                         # 실행 요약, 점수 분포, 항목별 평균, 대화별 점수, 모델 간 일치도, 변별력, 일관성
+python3 summarize.py results/run1.jsonl --csv results/run1.csv  # 엑셀용 표 (원문 제외)
+python3 summarize.py results/run1.jsonl --show cactus_ko_0041 CBT_1_guided_discovery   # 점수 설명 읽기
+```
+- 변별력: 망가진 대화의 `expected_drop` 항목이 원본보다 내려갔는지, 나머지 항목은 얼마나 변했는지를 보여줌
+- 일관성: `--runs 2` 이상으로 돌렸을 때만 출력됨
+
+## 설명 언어 (`--lang`)
+- 기본값 `--lang ko`: 프롬프트 원문은 그대로 두고, system 지시로 "설명은 한국어로, 형식은 '점수, 설명' 그대로"만 추가함. 결과 행의 `system_instruction`에 기록됨
+- `--lang en`: 추가 지시 없이 원문 프롬프트만 사용 (영어로 설명하는 모델도 있음)
+- 점수 기준과 엄격도 지시는 프롬프트 원문(CACTUS)에 있으며, 3번 단계 "Assign a score ... grading very strictly. If there is any deficiency, no matter how minor, assign a score of 4 or lower."가 6개 파일 모두에 들어 있음. 이 때문에 좋은 대화도 4점에 몰리는 경향이 있음
+
 ## 결과 스키마 (jsonl 1줄 = 대화 x judge x 항목 x 회차)
-conversation_id, conversation(원문 전문), meta, judge, item, run_index, score, explanation, raw_response, parse_ok, parse_error, api_error, prompt_sha256, returned_model, temperature_config, temperature_applied, reasoning_effort, input_tokens, cached_input_tokens, output_tokens, seconds, cost_usd, timestamp, metric_* (보조 지표)
+conversation_id, conversation(원문 전문), meta, system_instruction, judge, item, run_index, score, explanation, raw_response, parse_ok, parse_error, api_error, prompt_sha256, returned_model, temperature_config, temperature_applied, reasoning_effort, input_tokens, cached_input_tokens, output_tokens, seconds, cost_usd, timestamp, metric_* (보조 지표)
 
 ## 참고
 - 파싱은 첫 번째 쉼표 기준 분리, 점수는 0~6 정수만 인정함. 실패 시 원문을 `raw_response`에 보존하고 재시도하지 않음

@@ -142,5 +142,47 @@ class PerturbTest(unittest.TestCase):
         self.assertEqual(v["turns"][1]["text"], "네.")  # 내담자 발화 불변
 
 
+class AnalyzeTest(unittest.TestCase):
+    def _run(self, d):
+        from ctrs_judge.conversation import parse_conversation as pc
+        base = {"conversation_id": "b1", "meta": {"perturbation": "original", "base_id": "b1"},
+                "turns": [{"role": "therapist", "text": "a"}, {"role": "client", "text": "b"}]}
+        bad = {"conversation_id": "b1__repeat", "turns": base["turns"],
+               "meta": {"perturbation": "repeat", "base_id": "b1", "expected_drop": "general_1_understanding"}}
+        convs = [pc(base), pc(bad)]
+        items = load_prompts()
+        n = {"i": 0}
+
+        def fake(prompt):
+            n["i"] += 1
+            # 망가진 대화(문장 "a"/"b"는 동일하므로 호출 순서가 아니라 모델별 고정값 사용)
+            return Completion("4, 설명, 쉼표 포함", "m", 10, 0, 5, 0.1, 0)
+
+        out = Path(d) / "r.jsonl"
+        run(convs, items, {"m1": ({"temperature": 0}, fake), "m2": ({}, fake)}, out, runs=2, workers=1)
+        return out
+
+    def test_summarize_runs(self):
+        from ctrs_judge.analyze import explanations, load_rows, summarize, to_csv
+        with tempfile.TemporaryDirectory() as d:
+            rows = load_rows(self._run(d))
+            self.assertEqual(len(rows), 2 * 2 * 6 * 2)
+            text = summarize(rows)
+            for s in ("실행 요약", "점수 분포", "항목별 평균", "모델 간 일치도", "변별력", "일관성", "이해"):
+                self.assertIn(s, text)
+            self.assertIn("설명, 쉼표 포함", explanations(rows, "b1", "general_1_understanding"))
+            to_csv(rows, Path(d) / "o.csv")
+            self.assertIn("conversation_id", (Path(d) / "o.csv").read_text(encoding="utf-8-sig"))
+
+    def test_success_not_overwritten_by_failure(self):
+        from ctrs_judge.analyze import load_rows
+        ok = {"conversation_id": "c", "judge": "j", "item": "i", "run_index": 1, "api_error": None, "score": 4, "parse_ok": True}
+        bad = {**ok, "api_error": "x", "score": None, "parse_ok": False}
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "r.jsonl"
+            p.write_text(json.dumps(ok) + "\n" + json.dumps(bad) + "\n")
+            self.assertEqual(load_rows(p)[0]["score"], 4)
+
+
 if __name__ == "__main__":
     unittest.main()
