@@ -235,3 +235,60 @@ def to_csv(rows: list[dict], path: Path | str) -> None:
         for r in sorted(rows, key=lambda r: (r["conversation_id"], r["judge"], r["item"], r["run_index"])):
             m = r.get("meta", {})
             w.writerow([r.get(c) for c in cols] + [m.get("perturbation"), m.get("base_id")])
+
+
+def compare(rows_a: list[dict], rows_b: list[dict], judge: str, label_a: str, label_b: str) -> str:
+    """같은 judge의 두 실행(예: 원본 프롬프트 vs 엄격도 문장 제거)을 비교함."""
+    out = []
+    runs = {label_a: [r for r in rows_a if r["judge"] == judge], label_b: [r for r in rows_b if r["judge"] == judge]}
+    ma, mb = (score_means(runs[label_a]), score_means(runs[label_b]))
+    meta = {r["conversation_id"]: r.get("meta", {}) for rs in runs.values() for r in rs}
+    common = sorted({c for (c, j, i) in ma} & {c for (c, j, i) in mb})
+    is_orig = lambda c: meta[c].get("perturbation") in (None, "", "original")  # noqa: E731
+    origs = [c for c in common if is_orig(c)]
+    broken = [c for c in common if not is_orig(c) and meta[c].get("severity", 100) == 100]
+    items = _items(runs[label_a] + runs[label_b])
+    out.append(f"비교 대상: {judge} / 공통 대화 {len(common)}개 (정상 {len(origs)}, 망가진 100% {len(broken)})\n")
+
+    def dist(m, convs):
+        sc = [round(m[(c, judge, i)]) for c in convs for i in items if (c, judge, i) in m]
+        return sc
+
+    t = []
+    for lab, m in ((label_a, ma), (label_b, mb)):
+        sc = dist(m, origs)
+        t.append([lab] + [sum(1 for s in sc if s == k) for k in range(7)] +
+                 [f"{sum(sc) / len(sc):.2f}", f"{st.pstdev(sc):.2f}", len({s for s in sc})])
+    out += ["■ 정상 대화의 점수 분포 (퍼질수록 좋은 대화끼리 구분 가능)",
+            table(["프롬프트"] + [f"{k}점" for k in range(7)] + ["평균", "표준편차", "서로 다른 점수 수"], t), ""]
+
+    t = []
+    for it in items:
+        row = [ko(it)]
+        for m in (ma, mb):
+            v = [m[(c, judge, it)] for c in origs if (c, judge, it) in m]
+            row.append(f"{sum(v) / len(v):.2f}" if v else "-")
+        t.append(row)
+    out += ["■ 정상 대화의 항목별 평균", table(["항목", label_a, label_b], t), ""]
+
+    t = []
+    for lab, m in ((label_a, ma), (label_b, mb)):
+        exp_d, oth_d, zero = [], [], 0
+        for c in broken:
+            base, kind = meta[c].get("base_id"), meta[c].get("perturbation")
+            exp_items = EXPECTED_ITEMS.get(kind) or []
+            for i in items:
+                if (c, judge, i) in m and (base, judge, i) in m:
+                    d = m[(c, judge, i)] - m[(base, judge, i)]
+                    (exp_d if i in exp_items else oth_d).append(d)
+        t.append([lab, f"{sum(exp_d) / len(exp_d):+.2f}" if exp_d else "-",
+                  f"{sum(oth_d) / len(oth_d):+.2f}" if oth_d else "-",
+                  f"{sum(1 for x in exp_d if x < 0)}/{len(exp_d)}" if exp_d else "-"])
+    out += ["■ 망가진 대화(100%)의 점수 변화 (원본 대비)", table(["프롬프트", "기대 항목 평균", "나머지 항목 평균", "기대 항목 하락 건수"], t), ""]
+
+    same = [(ma[k], mb[k]) for k in ma if k in mb]
+    if same:
+        e = sum(1 for x, y in same if abs(x - y) < 1e-9)
+        out.append(f"■ 같은 칸의 점수 일치: {len(same)}건 중 {e}건({e / len(same):.0%}) 동일, 평균 차이({label_b}-{label_a}) "
+                   f"{sum(y - x for x, y in same) / len(same):+.2f}점")
+    return "\n".join(out) + "\n"

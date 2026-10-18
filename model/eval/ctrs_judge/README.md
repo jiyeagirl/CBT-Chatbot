@@ -75,6 +75,11 @@ python3 summarize.py results/run1.jsonl --show cactus_ko_0041 CBT_1_guided_disco
 - `--lang en`: 추가 지시 없이 원문 프롬프트만 사용 (영어로 설명하는 모델도 있음)
 - 점수 기준과 엄격도 지시는 프롬프트 원문(CACTUS)에 있으며, 3번 단계 "Assign a score ... grading very strictly. If there is any deficiency, no matter how minor, assign a score of 4 or lower."가 6개 파일 모두에 들어 있음. 이 때문에 좋은 대화도 4점에 몰리는 경향이 있음
 
+## 엄격도 문장 비교 (prompts_relaxed)
+- `python3 make_relaxed_prompts.py`가 원본(`prompts/`)에서 엄격도 지시("grading very strictly ... assign a score of 4 or lower", CBT_1은 마지막 줄 포함)만 뺀 사본을 `prompts_relaxed/`에 만듦. 평가 질문, 점수 기준, 출력 형식은 그대로이고 원본은 수정하지 않음
+- 실행: `python3 run_eval.py --input datasets/eval_set_30.jsonl --all --models gpt-6.1-sol --prompts-dir prompts_relaxed --out results/relaxed.jsonl` (원본 결과와 섞이지 않게 **다른 --out**을 쓸 것)
+- 비교: `python3 compare_runs.py results/run1.jsonl results/relaxed.jsonl --judge gpt-6.1-sol` (정상 대화의 점수 분포, 항목별 평균, 망가진 대화의 점수 변화, 같은 칸 일치율)
+
 ## 결과 스키마 (jsonl 1줄 = 대화 x judge x 항목 x 회차)
 conversation_id, conversation(원문 전문), meta, system_instruction, judge, item, run_index, score, explanation, raw_response, parse_ok, parse_error, api_error, prompt_sha256, returned_model, temperature_config, temperature_applied, reasoning_effort, input_tokens, cached_input_tokens, output_tokens, seconds, cost_usd, timestamp, metric_* (보조 지표)
 

@@ -213,5 +213,29 @@ class AnalyzeTest(unittest.TestCase):
             self.assertEqual(load_rows(p)[0]["score"], 4)
 
 
+class RelaxedTest(unittest.TestCase):
+    def test_relaxed_prompts(self):
+        import subprocess
+        root = Path(__file__).resolve().parent.parent
+        subprocess.run([sys.executable, str(root / "make_relaxed_prompts.py")], check=True, capture_output=True)
+        orig, relaxed = load_prompts(root / "prompts"), load_prompts(root / "prompts_relaxed")
+        self.assertEqual([i.item for i in orig], [i.item for i in relaxed])
+        for o, r in zip(orig, relaxed):
+            low = r.template.lower()
+            self.assertNotIn("strict", low)
+            self.assertNotIn("deficiency", low)
+            self.assertIn("Assign a score based on the criteria.", r.template)
+            self.assertIn("[Evaluation Question]", r.template)  # 나머지 구조는 유지
+            self.assertNotEqual(o.sha256, r.sha256)
+
+    def test_compare_runs(self):
+        from ctrs_judge.analyze import compare, load_rows
+        with tempfile.TemporaryDirectory() as d:
+            ra = AnalyzeTest()._run(d)
+            text = compare(load_rows(ra), load_rows(ra), "m1", "엄격", "완화")
+            for s in ("정상 대화의 점수 분포", "항목별 평균", "망가진 대화", "일치"):
+                self.assertIn(s, text)
+
+
 if __name__ == "__main__":
     unittest.main()
