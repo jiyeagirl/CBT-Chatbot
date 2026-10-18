@@ -2,3 +2,4 @@
 *.jsonl
 !cactus_ko_sample20.jsonl
 !perturbed_10.jsonl
+!eval_set_30.jsonl

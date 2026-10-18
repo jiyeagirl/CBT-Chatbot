@@ -124,6 +124,15 @@ class PerturbTest(unittest.TestCase):
         self.assertEqual(e["turns"][0]["text"], "안녕하세요. 반가워요.")  # 인사 유지
         self.assertEqual(self.BASE["turns"][2]["text"], "힘드셨겠어요. 언제부터였나요?")  # 원본 불변
 
+    def test_template_variants(self):
+        from ctrs_judge.perturb import make_variant
+        for kind in ("lecture", "directive", "offtopic"):
+            v = make_variant(self.BASE, kind)  # API 없이 생성
+            t = [x["text"] for x in v["turns"] if x["role"] == "therapist"]
+            self.assertEqual(t[0], "안녕하세요. 반가워요.")
+            self.assertNotEqual(t[1], self.BASE["turns"][2]["text"])
+            self.assertEqual(v["turns"][1]["text"], "네.")
+
     def test_llm_rewrite_validates_count(self):
         from ctrs_judge.perturb import make_variant
         outs = iter(['["a", "b"]', '```json\n["x", "y", "z"]\n```'])  # 개수 불일치 후 재시도 성공
