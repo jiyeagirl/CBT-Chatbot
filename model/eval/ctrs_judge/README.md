@@ -9,13 +9,22 @@
 - `datasets/`: 평가 대상 대화 jsonl (루트 `.gitignore`가 `data/`를 제외하므로 `datasets/`를 씀)
 - `results/`: 실행 결과 jsonl
 
-현재 항목: general_1_understanding, CBT_1_guided_discovery, CBT_2_focus, CBT_3_strategy (general_2, general_3은 추후 추가)
+현재 항목 6개: general_1_understanding, general_2_interpersonal_effectiveness, general_3_collaboration, CBT_1_guided_discovery, CBT_2_focus, CBT_3_strategy
 
 ## 입력 형식 (jsonl, 한 줄 = 대화 1개)
 ```json
 {"conversation_id": "cactus_0207", "turns": [{"role": "client", "text": "..."}, {"role": "therapist", "text": "..."}], "meta": {}}
 ```
 챗봇 대화도 이 형식으로 변환만 하면 같은 파이프라인으로 채점됨.
+
+## 데이터 (번역 정제 CACTUS 한국어 1000개)
+```bash
+python import_cactus_ko.py /path/to/cactus_selected_1000_ko_merged_final.json
+```
+- `datasets/cactus_ko_1000.jsonl`: 전체 1000개 (git 제외, 용량과 데이터 관리 정책 때문)
+- `datasets/cactus_ko_sample20.jsonl`: 무작위 20개 샘플 (seed 0, 커밋됨)
+- 원본의 `상담사:` / `내담자:` 줄을 turns로 변환함. conversation_id는 `cactus_ko_0000` 형식(원본 순서 기준)
+- meta에는 attitude, cbt_technique, patterns, thought만 남기고 intake_form, cbt_plan은 제외함
 
 ## 실행
 ```bash

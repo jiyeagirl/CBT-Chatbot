@@ -92,5 +92,21 @@ class RunnerTest(unittest.TestCase):
             self.assertEqual(run(convs, items, {"m": (cfg, fake)}, out, workers=1)["total"], 0)
 
 
+class CactusKoTest(unittest.TestCase):
+    def test_convert(self):
+        from ctrs_judge.cactus_ko import convert, parse_dialogue
+        t = parse_dialogue("상담사: 안녕하세요: 반가워요\n내담자: 네")
+        self.assertEqual(t, [{"role": "therapist", "text": "안녕하세요: 반가워요"}, {"role": "client", "text": "네"}])
+        rows = convert([{"dialogue": "상담사: a\n내담자: b", "attitude": "중립적", "intake_form": "x"}])
+        self.assertEqual(rows[0]["conversation_id"], "cactus_ko_0000")
+        self.assertNotIn("intake_form", rows[0]["meta"])
+        parse_conversation(rows[0])
+
+    def test_unknown_speaker(self):
+        from ctrs_judge.cactus_ko import parse_dialogue
+        with self.assertRaises(ValueError):
+            parse_dialogue("의사: 안녕")
+
+
 if __name__ == "__main__":
     unittest.main()
