@@ -26,13 +26,13 @@ python import_cactus_ko.py /path/to/cactus_selected_1000_ko_merged_final.json
 - 원본의 `상담사:` / `내담자:` 줄을 turns로 변환함. conversation_id는 `cactus_ko_0000` 형식(원본 순서 기준)
 - meta에는 attitude, cbt_technique, patterns, thought만 남기고 intake_form, cbt_plan은 제외함
 
-## 평가셋 구성 (멀쩡한 20개 + 망가진 10개 + 약한 버전 20개 = 50개)
+## 평가셋 구성 (멀쩡한 20개 + 망가진 10개 + 단계별 10개 = 40개)
 `python make_perturbations.py`로 만들며 API 키가 필요 없음. 결과는 `datasets/eval_set_30.jsonl`(전체 30개)과 `datasets/perturbed_10.jsonl`(망가진 10개만).
 - 멀쩡한 20개: `cactus_ko_sample20.jsonl` 그대로 (meta.perturbation = original)
 - 망가진 10개: 위 20개 중 10개(한 칸 건너 하나)를 골라 5유형을 돌아가며 각 2개씩 망가뜨림. 같은 원본은 한 번만 쓰고, 원본이 20개 안에 있어서 짝 비교(원본 대비 하락폭)가 가능함. id는 `원본id__유형`, meta에 `base_id`, `expected_drop`(점수 하락을 기대하는 항목)이 들어감
 - 내담자 발화는 그대로 두고 상담자 발화만 바꿈. 첫 인사는 원문 유지
-- **정도(severity)**: 같은 10개 원본에 대해 30%, 60% 버전(`원본id__유형_p30`, `_p60`)을 추가함. 바뀔 수 있는 상담자 발화 중 해당 비율만 망가뜨리고 나머지는 원문 그대로이며, 대화 전체에 고르게 퍼지게 결정적으로 고름. 100% 버전의 id와 내용은 기존과 동일함. `원본 -> 30% -> 60% -> 100%`로 점수가 단계적으로 내려가는지 `summarize.py`의 '정도별 점수 변화' 표로 확인함
-- 파일: `eval_set_50.jsonl`(전체 50개), `perturbed_graded.jsonl`(30%, 60% 20개), `perturbed_10.jsonl`(100% 10개), `eval_set_30.jsonl`(이전 구성, 유지)
+- **정도(severity)**: 유형마다 대화 1개씩(5개)에 대해 30%, 60% 버전(`원본id__유형_p30`, `_p60`)을 추가함. 바뀔 수 있는 상담자 발화 중 해당 비율만 망가뜨리고 나머지는 원문 그대로이며, 대화 전체에 고르게 퍼지게 결정적으로 고름. 100% 버전의 id와 내용은 기존과 동일함. `원본 -> 30% -> 60% -> 100%`로 점수가 단계적으로 내려가는지 `summarize.py`의 '정도별 점수 변화' 표로 확인함
+- 파일: `eval_set_40.jsonl`(전체 40개), `perturbed_graded.jsonl`(30%, 60% 10개), `perturbed_10.jsonl`(100% 10개), `eval_set_30.jsonl`(이전 구성, 유지)
 - 공감 제거(no_empathy)는 반영 문장도 함께 지워서 기대 항목에 이해를 추가함(주 항목은 대인관계)
 
 | 유형 | 방식 | 하락 기대 항목 |

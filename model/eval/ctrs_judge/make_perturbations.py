@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""평가셋 구성 (API 불필요): 멀쩡한 20개 + 망가진 10개(100%) + 같은 10개의 약한 버전 20개(30%, 60%) = 50개.
+"""평가셋 구성 (API 불필요): 멀쩡한 20개 + 망가진 10개(100%) + 단계별 10개(5개 대화의 30%, 60%) = 40개.
 
 - 멀쩡한 20개: datasets/cactus_ko_sample20.jsonl 그대로
 - 망가뜨린 10개: 위 20개 중 10개(한 칸 건너 하나씩)를 골라 5유형을 돌아가며 각 2개씩 망가뜨림
   (같은 원본은 한 번만 사용. 짝이 되는 원본이 20개 안에 있으므로 원본 대비 하락폭을 바로 비교 가능)
 정도(severity): 바뀔 수 있는 상담자 발화 중 몇 %를 망가뜨렸는지. 원본 -> 30% -> 60% -> 100%로 점수가 단계적으로 내려가는지 봄
 출력: datasets/perturbed_10.jsonl (100% 10개), datasets/perturbed_graded.jsonl (30%, 60% 20개),
-      datasets/eval_set_30.jsonl (20 + 10), datasets/eval_set_50.jsonl (20 + 10 + 20)
+      datasets/eval_set_30.jsonl (20 + 10), datasets/eval_set_40.jsonl (20 + 10 + 10)
+단계별 버전은 유형마다 첫 대화 1개씩(5개)만 만들어, 그 5개는 원본 -> 30% -> 60% -> 100% 곡선이 온전히 나옴
 LLM으로 다시 쓰고 싶으면 --llm-model gpt-6.1-sol (OPENAI_API_KEY 필요, 선택 사항)
 """
 import argparse
@@ -22,6 +23,7 @@ ORDER = ["repeat", "no_empathy", "directive", "lecture", "offtopic"]
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument("--input", default=str(HERE / "datasets" / "cactus_ko_sample20.jsonl"))
 ap.add_argument("--n-broken", type=int, default=10)
+ap.add_argument("--graded-bases", type=int, default=5, help="30%%, 60%% 버전을 만들 대화 수(앞에서부터, 유형이 한 번씩 돌아가는 5개가 기본)")
 ap.add_argument("--llm-model", help="선택. 지정하면 lecture, directive, offtopic을 LLM으로 재작성")
 a = ap.parse_args()
 
@@ -42,13 +44,13 @@ step = max(len(bases) // a.n_broken, 1)
 picked = bases[::step][: a.n_broken]
 kinds = [ORDER[k % len(ORDER)] for k in range(len(picked))]
 broken = [make_variant(b, kd, complete) for b, kd in zip(picked, kinds)]
-graded = [make_variant(b, kd, complete, severity=sv) for b, kd in zip(picked, kinds) for sv in (30, 60)]
+graded = [make_variant(b, kd, complete, severity=sv) for b, kd in list(zip(picked, kinds))[: a.graded_bases] for sv in (30, 60)]
 originals = [as_original(b) for b in bases]
 
 write_jsonl(broken, HERE / "datasets" / "perturbed_10.jsonl")
 write_jsonl(graded, HERE / "datasets" / "perturbed_graded.jsonl")
 write_jsonl(originals + broken, HERE / "datasets" / "eval_set_30.jsonl")
-write_jsonl(originals + broken + graded, HERE / "datasets" / "eval_set_50.jsonl")
+write_jsonl(originals + broken + graded, HERE / "datasets" / "eval_set_40.jsonl")
 for r in broken + graded:
     print(f"{r['conversation_id']:36s} {r['meta']['severity']:>3d}%  기대 하락: {r['meta']['expected_drop']}")
-print(f"멀쩡한 {len(originals)}개 + 망가진 {len(broken)}개 + 약한 버전 {len(graded)}개 = {len(originals) + len(broken) + len(graded)}개 -> datasets/eval_set_50.jsonl")
+print(f"멀쩡한 {len(originals)}개 + 망가진 {len(broken)}개 + 약한 버전 {len(graded)}개 = {len(originals) + len(broken) + len(graded)}개 -> datasets/eval_set_40.jsonl")
