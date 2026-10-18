@@ -108,5 +108,30 @@ class CactusKoTest(unittest.TestCase):
             parse_dialogue("의사: 안녕")
 
 
+class PerturbTest(unittest.TestCase):
+    BASE = {"conversation_id": "b1", "meta": {}, "turns": [
+        {"role": "therapist", "text": "안녕하세요. 반가워요."}, {"role": "client", "text": "네."},
+        {"role": "therapist", "text": "힘드셨겠어요. 언제부터였나요?"}, {"role": "client", "text": "작년요."},
+        {"role": "therapist", "text": "그렇군요. 그때 무슨 생각이 들었나요?"}, {"role": "client", "text": "몰라요."}]}
+
+    def test_repeat_and_no_empathy(self):
+        from ctrs_judge.perturb import make_variant
+        r = make_variant(self.BASE, "repeat")
+        self.assertEqual(r["turns"][4]["text"], "힘드셨겠어요. 언제부터였나요?")
+        self.assertEqual(r["meta"]["expected_drop"], "general_1_understanding")
+        e = make_variant(self.BASE, "no_empathy")
+        self.assertEqual(e["turns"][2]["text"], "언제부터였나요?")
+        self.assertEqual(e["turns"][0]["text"], "안녕하세요. 반가워요.")  # 인사 유지
+        self.assertEqual(self.BASE["turns"][2]["text"], "힘드셨겠어요. 언제부터였나요?")  # 원본 불변
+
+    def test_llm_rewrite_validates_count(self):
+        from ctrs_judge.perturb import make_variant
+        outs = iter(['["a", "b"]', '```json\n["x", "y", "z"]\n```'])  # 개수 불일치 후 재시도 성공
+        v = make_variant(self.BASE, "lecture", lambda p: next(outs))
+        self.assertEqual([t["text"] for t in v["turns"] if t["role"] == "therapist"],
+                         ["안녕하세요. 반가워요.", "y", "z"])
+        self.assertEqual(v["turns"][1]["text"], "네.")  # 내담자 발화 불변
+
+
 if __name__ == "__main__":
     unittest.main()

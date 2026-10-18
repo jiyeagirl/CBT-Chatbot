@@ -26,6 +26,26 @@ python import_cactus_ko.py /path/to/cactus_selected_1000_ko_merged_final.json
 - 원본의 `상담사:` / `내담자:` 줄을 turns로 변환함. conversation_id는 `cactus_ko_0000` 형식(원본 순서 기준)
 - meta에는 attitude, cbt_technique, patterns, thought만 남기고 intake_form, cbt_plan은 제외함
 
+## 망가뜨린 대화 (perturbation)
+원본 10개(샘플 20개의 앞 10개)와, 항목별로 일부러 품질을 떨어뜨린 버전을 `datasets/perturbed_10.jsonl`에 만듦. 원본은 그대로 id를 유지하고 변형은 id를 `원본id__유형`, meta에 `perturbation`, `base_id`, `expected_drop`(점수 하락을 기대하는 항목)이 들어감.
+
+| 유형 | 방식 | 하락 기대 항목 | 생성 |
+|---|---|---|---|
+| repeat | 첫 탐색 질문을 이후 상담자 발화에 그대로 반복 | general_1_understanding | 규칙 기반 |
+| no_empathy | 상담자 발화에서 마지막 문장만 남겨 공감, 반영 제거 | general_2_interpersonal_effectiveness | 규칙 기반 |
+| directive | 선택권, 목표 확인 없이 일방적 지시 | general_3_collaboration | LLM 재작성 |
+| lecture | 질문 대신 설교, 설득, 반박 | CBT_1_guided_discovery | LLM 재작성 |
+| offtopic | 핵심 인지와 무관한 잡담 | CBT_2_focus | LLM 재작성 |
+
+```bash
+python make_perturbations.py                       # 규칙 기반 2종(원본 10 + 20 = 30줄), API 불필요
+python make_perturbations.py --types lecture directive offtopic --llm-model gpt-6.1-sol   # OPENAI_API_KEY 필요
+```
+- 같은 `--out`에 다시 실행하면 이미 있는 id는 건너뛰고 추가분만 씀. 5종을 모두 만들면 원본 10 + 변형 50 = 60줄
+- 내담자 발화는 바꾸지 않고 상담자 발화만 바꿈. LLM 재작성은 상담자 발화 수가 맞는지 검증하고 안 맞으면 재시도함
+- CBT_3_strategy(변화전략)에 대응하는 유형은 아직 없음(필요하면 "기법 없이 막연한 위로만" 유형 추가 가능)
+- 사람이 일부 눈으로 확인한 뒤 사용할 것(특히 LLM 재작성분)
+
 ## 실행
 ```bash
 pip install -r requirements.txt
