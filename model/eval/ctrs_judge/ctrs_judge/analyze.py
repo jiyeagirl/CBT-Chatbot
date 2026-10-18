@@ -117,7 +117,7 @@ def summarize(rows: list[dict]) -> str:
 
     # 4. 대화별 점수
     convs = sorted({r["conversation_id"] for r in rows})
-    if len(convs) <= 40:
+    if len(convs) <= 60:
         t = []
         for c in convs:
             tag = meta[c].get("perturbation", "")
