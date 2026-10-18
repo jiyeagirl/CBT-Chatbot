@@ -237,5 +237,22 @@ class RelaxedTest(unittest.TestCase):
                 self.assertIn(s, text)
 
 
+class RankTest(unittest.TestCase):
+    def test_spearman(self):
+        from ctrs_judge.analyze import spearman
+        self.assertAlmostEqual(spearman([1, 2, 3, 4], [10, 20, 30, 40]), 1.0)
+        self.assertAlmostEqual(spearman([1, 2, 3, 4], [4, 3, 2, 1]), -1.0)
+        self.assertIsNone(spearman([4, 4, 4, 4], [1, 2, 3, 4]))   # 한쪽이 상수면 계산 불가
+        self.assertAlmostEqual(spearman([1, 2, 2, 3], [1, 2, 2, 3]), 1.0)  # 동점 처리
+
+    def test_rank_agreement_runs(self):
+        from ctrs_judge.analyze import load_rows, rank_agreement
+        with tempfile.TemporaryDirectory() as d:
+            rows = load_rows(AnalyzeTest()._run(d))
+            text = rank_agreement(rows, "m1", rows, "m2")
+            self.assertIn("순위 상관", text)
+            self.assertIn("계산 불가", text)  # 가짜 judge는 점수가 모두 같음
+
+
 if __name__ == "__main__":
     unittest.main()

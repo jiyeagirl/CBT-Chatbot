@@ -36,10 +36,11 @@ def load_dotenv() -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--input", required=True, help="대화 jsonl")
-    ap.add_argument("--models", nargs="+", default=["gpt-6-luna"], help="models.json의 키")
+    ap.add_argument("--models", nargs="+", default=["gpt-6.1-sol"], help="models.json의 키 (기본: 최종 선정 판정자 gpt-6.1-sol)")
     ap.add_argument("--models-file", default=str(HERE / "models.json"))
     ap.add_argument("--items", nargs="*", help="일부 항목만(파일명 stem). 기본은 prompts/ 전체")
-    ap.add_argument("--prompts-dir", default=str(HERE / "prompts"))
+    ap.add_argument("--prompts-dir", default=str(HERE / "prompts_relaxed"),
+                    help="기본: prompts_relaxed(최종 선정, 엄격도 문장 제거). CACTUS 원본 엄격 프롬프트는 --prompts-dir prompts")
     ap.add_argument("--limit", type=int, default=5, help="앞에서부터 N개 대화만(기본 5)")
     ap.add_argument("--all", action="store_true", help="--limit 무시하고 전체 대화 실행")
     ap.add_argument("--runs", type=int, default=1, help="같은 대화 반복 채점 횟수(일관성 측정용)")

@@ -1,5 +1,7 @@
 # CTRS judge (평가 모델)
 
+> **최종 설정**: 판정 모델 `gpt-6.1-sol`, 프롬프트 `prompts_relaxed/`(CACTUS 원본에서 엄격도 지시만 제거), 설명은 한국어. `run_eval.py`의 기본값과 같음. 선정 근거와 검증 결과는 [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md) 참고. 사람(전문가) 채점과의 비교는 아직 하지 않았음.
+
 상담 대화를 입력받아 CTRS 항목별 점수(0~6)를 매기는 LLM-as-a-judge 파이프라인임. 작업 지침은 [CLAUDE.md](CLAUDE.md) 참고.
 
 ## 구조
@@ -69,6 +71,15 @@ python3 summarize.py results/run1.jsonl --show cactus_ko_0041 CBT_1_guided_disco
 ```
 - 변별력: 망가진 대화의 `expected_drop` 항목이 원본보다 내려갔는지, 나머지 항목은 얼마나 변했는지를 보여줌
 - 일관성: `--runs 2` 이상으로 돌렸을 때만 출력됨
+
+## 최종 설정으로 실행
+```bash
+python3 run_eval.py --input datasets/eval_set_30.jsonl --all --out results/final.jsonl     # sol + 완화 프롬프트(기본값)
+python3 run_eval.py --input datasets/eval_set_30.jsonl --all --prompts-dir prompts --out results/strict.jsonl   # CACTUS 원본 엄격 프롬프트(비교용)
+python3 compare_runs.py results/strict.jsonl results/final.jsonl --judge gpt-6.1-sol
+python3 compare_judges.py results/strict.jsonl gpt-6-luna results/final.jsonl gpt-6.1-sol   # 서로 다른 judge의 정상 대화 순위 일치
+```
+- 결과 파일(`results/*.jsonl`, `*.csv`)은 대화 원문과 요청 ID가 들어 있어 git에서 제외됨
 
 ## 설명 언어 (`--lang`)
 - 기본값 `--lang ko`: 프롬프트 원문은 그대로 두고, system 지시로 "설명은 한국어로, 형식은 '점수, 설명' 그대로"만 추가함. 결과 행의 `system_instruction`에 기록됨

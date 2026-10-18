@@ -292,3 +292,49 @@ def compare(rows_a: list[dict], rows_b: list[dict], judge: str, label_a: str, la
         out.append(f"■ 같은 칸의 점수 일치: {len(same)}건 중 {e}건({e / len(same):.0%}) 동일, 평균 차이({label_b}-{label_a}) "
                    f"{sum(y - x for x, y in same) / len(same):+.2f}점")
     return "\n".join(out) + "\n"
+
+
+def _ranks(v: list[float]) -> list[float]:
+    order = sorted(range(len(v)), key=lambda i: v[i])
+    r = [0.0] * len(v)
+    i = 0
+    while i < len(order):
+        j = i
+        while j + 1 < len(order) and v[order[j + 1]] == v[order[i]]:
+            j += 1
+        for k in range(i, j + 1):
+            r[order[k]] = (i + j) / 2 + 1
+        i = j + 1
+    return r
+
+
+def spearman(a: list[float], b: list[float]) -> float | None:
+    """순위 상관. 한쪽이 상수(모두 같은 점수)이면 계산할 수 없어 None."""
+    if len(a) < 3 or len(set(a)) < 2 or len(set(b)) < 2:
+        return None
+    ra, rb = _ranks(a), _ranks(b)
+    ma, mb = st.mean(ra), st.mean(rb)
+    num = sum((x - ma) * (y - mb) for x, y in zip(ra, rb))
+    den = (sum((x - ma) ** 2 for x in ra) * sum((y - mb) ** 2 for y in rb)) ** 0.5
+    return num / den
+
+
+def rank_agreement(rows_a: list[dict], judge_a: str, rows_b: list[dict], judge_b: str) -> str:
+    """정상 대화들을 두 judge가 비슷한 순서로 매기는지(항목별 순위 상관). 서로 독립적인 judge가 일치하면 점수 차이가 잡음이 아닐 가능성이 큼."""
+    ma, mb = score_means([r for r in rows_a if r["judge"] == judge_a]), score_means([r for r in rows_b if r["judge"] == judge_b])
+    meta = {r["conversation_id"]: r.get("meta", {}) for r in rows_a + rows_b}
+    origs = sorted(c for c in {k[0] for k in ma} & {k[0] for k in mb}
+                   if meta[c].get("perturbation") in (None, "", "original"))
+    items = _items(rows_a + rows_b)
+    t = []
+    for it in items:
+        xs = [ma[(c, judge_a, it)] for c in origs if (c, judge_a, it) in ma and (c, judge_b, it) in mb]
+        ys = [mb[(c, judge_b, it)] for c in origs if (c, judge_a, it) in ma and (c, judge_b, it) in mb]
+        r = spearman(xs, ys)
+        t.append([ko(it), len(xs), f"{st.pstdev(xs):.2f}", f"{st.pstdev(ys):.2f}", "계산 불가(한쪽이 상수)" if r is None else f"{r:.2f}"])
+    tot_a = [sum(ma[(c, judge_a, i)] for i in items if (c, judge_a, i) in ma) for c in origs]
+    tot_b = [sum(mb[(c, judge_b, i)] for i in items if (c, judge_b, i) in mb) for c in origs]
+    r = spearman(tot_a, tot_b)
+    t.append(["대화별 합계", len(origs), f"{st.pstdev(tot_a):.2f}", f"{st.pstdev(tot_b):.2f}", "계산 불가" if r is None else f"{r:.2f}"])
+    return "\n".join([f"■ 정상 대화 순위 일치: A={judge_a}, B={judge_b}",
+                      table(["항목", "대화 수", "A 대화간 표준편차", "B 대화간 표준편차", "순위 상관(Spearman)"], t, right_from=1), ""])
