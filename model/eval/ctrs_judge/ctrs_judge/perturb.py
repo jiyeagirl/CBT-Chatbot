@@ -20,10 +20,11 @@ EXPECTED_ITEMS = {
     "directive": ["general_3_collaboration"],
     "lecture": ["CBT_1_guided_discovery"],
     "offtopic": ["CBT_2_focus"],
+    "cold": ["general_2_interpersonal_effectiveness"],
 }
 EXPECTED_DROP = {k: v[0] for k, v in EXPECTED_ITEMS.items()}
 SEVERITIES = (30, 60, 100)
-RULE_BASED = ("repeat", "no_empathy")
+RULE_BASED = ("repeat", "no_empathy", "cold")
 LLM_BASED = ("lecture", "directive", "offtopic")
 
 _SENT_SPLIT = re.compile(r"(?<=[.?!])\s+")
@@ -126,6 +127,26 @@ def _template_rewrite(turns: list[dict], kind: str) -> list[dict]:
     return out
 
 
+# 차가운 태도: no_empathy(공감 문장 제거)에 눈에 띄게 무뚝뚝하고 성의 없는 말투를 더한 버전.
+# 욕설이나 모욕은 넣지 않고 말투의 따뜻함만 낮춤. 질문 내용은 no_empathy와 동일해서 차이가 말투에서만 생김.
+COLD_PREFIXES = [
+    "네.", "그건 중요하지 않아요.", "시간이 없으니 넘어가죠.", "그건 알겠고요.", "그런 얘기는 넘어가겠습니다.",
+    "누구나 겪는 일이에요.", "그렇군요. 다음으로 가죠.", "빨리 진행할게요.", "그 부분은 됐고요.",
+    "일단 다음 질문입니다.", "그건 별로 도움이 안 되고요.", "알겠습니다. 계속하죠.", "네, 그다음은요.",
+    "그건 크게 중요하지 않습니다.", "길게 말씀하실 필요는 없고요.", "그 얘긴 그만하고요.", "좋아요. 본론으로 가죠.",
+]
+
+
+def cold(turns: list[dict]) -> list[dict]:
+    """첫 인사를 제외한 상담자 발화를 '무뚝뚝한 한마디 + 마지막 문장(질문)'으로 바꿈."""
+    idx = _therapist_idx(turns)
+    out = [dict(t) for t in turns]
+    for n, i in enumerate(idx[1:]):
+        last = _SENT_SPLIT.split(out[i]["text"].strip())[-1]
+        out[i]["text"] = f"{COLD_PREFIXES[n % len(COLD_PREFIXES)]} {last}"
+    return out
+
+
 def parse_rewrite_output(text: str, n_expected: int) -> list[str]:
     s = text.strip()
     s = re.sub(r"^```(?:json)?\s*|\s*```$", "", s)
@@ -171,7 +192,7 @@ def _blend(orig: list[dict], full: list[dict], frac: float) -> list[dict]:
 
 def make_variant(base: dict, kind: str, complete: Callable[[str], str] | None = None, severity: int = 100) -> dict:
     if kind in RULE_BASED:
-        turns = {"repeat": repeat, "no_empathy": no_empathy}[kind](base["turns"])
+        turns = {"repeat": repeat, "no_empathy": no_empathy, "cold": cold}[kind](base["turns"])
     elif kind in LLM_BASED:
         turns = (llm_rewrite(base["turns"], kind, complete) if complete
                  else _template_rewrite(base["turns"], kind))

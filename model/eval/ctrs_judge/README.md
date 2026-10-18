@@ -42,7 +42,9 @@ python import_cactus_ko.py /path/to/cactus_selected_1000_ko_merged_final.json
 | directive | 선택권 없이 일방적 지시 (템플릿 문장) | general_3_collaboration |
 | lecture | 질문 대신 설교, 설득, 반박 (템플릿 문장) | CBT_1_guided_discovery |
 | offtopic | 핵심 인지와 무관한 잡담 (템플릿 문장) | CBT_2_focus |
+| cold (추가) | 공감 제거 + 무뚝뚝한 한마디("네.", "시간이 없으니 넘어가죠." 등)를 앞에 붙임 (규칙) | general_2_interpersonal_effectiveness |
 
+- **차가운 태도(cold)**: 공감 제거 변형이 따뜻함 점수를 못 내려서, 말투까지 차갑게 만든 대조 버전임. 질문 내용은 공감 제거와 같고 말투만 다름. 모욕이나 욕설은 넣지 않음. `datasets/cold_extra.jsonl`(4개: 0310은 30/60/100%, 0802는 100%)이며 `eval_set_40`에는 포함되지 않고 별도로 채점함: `python3 run_eval.py --input datasets/cold_extra.jsonl --all --models gpt-6-luna gpt-6.1-sol --out results/run1.jsonl`
 - 템플릿 3종은 내담자 말과 무관한 문장이라 대화 흐름이 부자연스러움. 결함이 분명히 드러나는 것이 목적이고, judge가 이 정도 결함을 구별하는지 보는 1차 검증용임
 - 더 자연스러운 버전이 필요하면 `--llm-model gpt-6.1-sol`로 LLM 재작성 가능(선택, 키 필요, `perturb_prompts/` 사용)
 - CBT_3_strategy에 대응하는 유형은 아직 없음

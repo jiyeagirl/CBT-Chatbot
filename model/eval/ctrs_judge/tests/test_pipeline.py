@@ -124,6 +124,16 @@ class PerturbTest(unittest.TestCase):
         self.assertEqual(e["turns"][0]["text"], "안녕하세요. 반가워요.")  # 인사 유지
         self.assertEqual(self.BASE["turns"][2]["text"], "힘드셨겠어요. 언제부터였나요?")  # 원본 불변
 
+    def test_cold(self):
+        from ctrs_judge.perturb import make_variant
+        c = make_variant(self.BASE, "cold")
+        t = [x["text"] for x in c["turns"] if x["role"] == "therapist"]
+        self.assertEqual(t[0], "안녕하세요. 반가워요.")           # 인사 유지
+        self.assertTrue(t[1].endswith("언제부터였나요?"))         # 질문(마지막 문장)은 유지
+        self.assertNotIn("힘드셨겠어요", t[1])                    # 공감 문장은 제거
+        self.assertNotEqual(t[1], "언제부터였나요?")               # no_empathy와 달리 차가운 말투가 붙음
+        self.assertEqual(c["meta"]["expected_drop"], "general_2_interpersonal_effectiveness")
+
     def test_severity(self):
         from ctrs_judge.perturb import make_variant
         turns = []

@@ -19,7 +19,7 @@ ITEM_KO = {
 }
 ITEM_ORDER = list(ITEM_KO)
 TYPE_KO = {"repeat": "반복", "no_empathy": "공감 제거", "directive": "일방적 지시",
-           "lecture": "설교", "offtopic": "잡담"}
+           "lecture": "설교", "offtopic": "잡담", "cold": "차가운 태도"}
 
 
 def ko(item: str) -> str:
