@@ -15,12 +15,12 @@ export function TabBar() {
           to={tab.to}
           end={tab.to === '/'}
           className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 text-[10px] ${
+            `flex flex-col items-center gap-0.5 text-[10px]/[normal] ${
               isActive ? 'font-bold text-primary' : 'text-muted'
             }`
           }
         >
-          <span className="text-base text-ink" aria-hidden>
+          <span className="text-[16px]/[normal] text-ink" aria-hidden>
             {tab.icon}
           </span>
           {tab.label}

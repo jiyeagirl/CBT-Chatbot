@@ -18,8 +18,8 @@ export function Home() {
       <main className="flex flex-1 flex-col gap-[18px] px-5 pt-10 pb-4">
         <header className="flex items-center gap-2">
           <div className="flex flex-1 flex-col gap-1">
-            <h1 className="text-lg font-bold">오늘은 어떤 하루였나요</h1>
-            <p className="text-[11.5px] text-muted">마음이 복잡할 때, 잠시 정리해볼까요</p>
+            <h1 className="text-[18px]/[normal] font-bold">오늘은 어떤 하루였나요</h1>
+            <p className="text-[11.5px]/[normal] text-muted">마음이 복잡할 때, 잠시 정리해볼까요</p>
           </div>
           <Mascot variant="waving" width={56} height={68} />
         </header>
@@ -28,13 +28,13 @@ export function Home() {
           to="/chat"
           className="flex flex-col items-center justify-center gap-2 rounded-hero bg-primary py-8 text-white shadow-card"
         >
-          <span className="text-[26px]" aria-hidden>
+          <span className="text-[26px]/[normal]" aria-hidden>
             💬
           </span>
-          <span className="text-base font-bold">대화 시작하기</span>
+          <span className="text-[16px]/[normal] font-bold">대화 시작하기</span>
         </Link>
 
-        <h2 className="text-[13px] font-bold text-muted">최근 기록</h2>
+        <h2 className="text-[13px]/[normal] font-bold text-muted">최근 기록</h2>
         <ul className="flex flex-col gap-[18px]">
           {records.map((record) => (
             <li key={record.id}>
@@ -43,10 +43,10 @@ export function Home() {
                 className="flex items-center gap-2 rounded-card bg-white px-3.5 py-3 shadow-card"
               >
                 <span className="flex flex-1 flex-col gap-0.5">
-                  <span className="text-[12.5px]">{record.title}</span>
-                  <span className="text-[10.5px] text-muted">{formatDate(record.createdAt)}</span>
+                  <span className="text-[12.5px]/[15px]">{record.title}</span>
+                  <span className="text-[10.5px]/[13px] text-muted">{formatDate(record.createdAt)}</span>
                 </span>
-                <span className="text-[15px] text-muted" aria-hidden>
+                <span className="text-[15px]/[normal] text-muted" aria-hidden>
                   ›
                 </span>
               </Link>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toggleOn from '../assets/toggle-on.svg'
 import { Mascot, type MascotVariant } from '../components/Mascot'
 import { completeOnboarding } from '../lib/preferences'
 
@@ -50,7 +51,7 @@ export function Onboarding() {
     <div className="flex min-h-dvh flex-col">
       <div className="flex justify-end px-6 py-1 pt-5">
         {!isLast && (
-          <button type="button" onClick={finish} className="text-xs text-muted">
+          <button type="button" onClick={finish} className="text-[12px]/[normal] text-muted">
             건너뛰기
           </button>
         )}
@@ -69,8 +70,8 @@ export function Onboarding() {
 
         <Mascot {...step.mascot} />
 
-        <h1 className="text-center text-[22px] font-bold">{step.title}</h1>
-        <p className="text-center text-[13px] text-muted">
+        <h1 className="text-center text-[22px]/[normal] font-bold">{step.title}</h1>
+        <p className="text-center text-[13px]/[normal] text-muted">
           {step.body.map((line) => (
             <span key={line} className="block">
               {line}
@@ -79,16 +80,22 @@ export function Onboarding() {
         </p>
 
         {isLast && (
-          <label className="flex cursor-pointer items-center gap-2.5 rounded-xl bg-white px-4 py-3 shadow-card">
-            <input
-              type="checkbox"
-              role="switch"
-              checked={saveHistory}
-              onChange={(e) => setSaveHistory(e.target.checked)}
-              className="size-5 accent-primary"
-            />
-            <span className="text-[12.5px]">대화 기록 저장하기</span>
-          </label>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={saveHistory}
+            onClick={() => setSaveHistory(!saveHistory)}
+            className="flex items-center gap-2.5 rounded-xl bg-white px-4 py-3 shadow-card"
+          >
+            {saveHistory ? (
+              <img src={toggleOn} alt="" width={40} height={22} />
+            ) : (
+              <span className="flex h-[22px] w-10 items-center rounded-full bg-line px-[3px]">
+                <span className="size-4 rounded-full bg-white" />
+              </span>
+            )}
+            <span className="text-[12.5px]/[normal]">대화 기록 저장하기</span>
+          </button>
         )}
       </main>
 
@@ -96,7 +103,7 @@ export function Onboarding() {
         <button
           type="button"
           onClick={isLast ? finish : () => setIndex(index + 1)}
-          className="w-full rounded-button bg-primary py-4 text-[15px] font-bold text-white"
+          className="w-full rounded-button bg-primary py-4 text-[15px]/[normal] font-bold text-white"
         >
           {isLast ? '시작하기' : '다음'}
         </button>
