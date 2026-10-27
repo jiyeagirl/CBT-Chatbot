@@ -1,5 +1,6 @@
 // docs/api-spec.md §4~5 (대화 생성, SSE 채팅)에 대응한다.
 // VITE_USE_MOCK=false 이면 실제 API, 그 외에는 목업(mockChat)을 쓴다.
+import { ApiError, request, useMock } from './client'
 import { mockCreateConversation, mockStreamMessage } from './mockChat'
 import { readSse } from './sse'
 
@@ -16,40 +17,6 @@ export type ChatEvent =
   | { type: 'token'; delta: string }
   | { type: 'done'; messageId: string; finishReason: string }
   | { type: 'error'; code: string; message: string }
-
-export class ApiError extends Error {
-  code: string
-  constructor(code: string, message: string) {
-    super(message)
-    this.code = code
-  }
-}
-
-const useMock = import.meta.env.VITE_USE_MOCK !== 'false'
-const baseUrl: string = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
-const TOKEN_KEY = 'synap.token'
-
-async function request(path: string, init: RequestInit = {}, auth = true): Promise<Response> {
-  const headers = new Headers(init.headers)
-  headers.set('Content-Type', 'application/json')
-  if (auth) headers.set('Authorization', `Bearer ${await getToken()}`)
-
-  const res = await fetch(`${baseUrl}${path}`, { ...init, headers })
-  if (!res.ok) {
-    const body = await res.json().catch(() => null)
-    throw new ApiError(body?.code ?? 'internal_error', body?.message ?? '요청에 실패했어요.')
-  }
-  return res
-}
-
-async function getToken(): Promise<string> {
-  const saved = localStorage.getItem(TOKEN_KEY)
-  if (saved) return saved
-  const res = await request('/auth/guest', { method: 'POST' }, false)
-  const { access_token } = await res.json()
-  localStorage.setItem(TOKEN_KEY, access_token)
-  return access_token
-}
 
 export async function createConversation(): Promise<string> {
   if (useMock) return mockCreateConversation()

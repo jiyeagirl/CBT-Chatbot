@@ -44,7 +44,7 @@ export function Onboarding() {
 
   const finish = () => {
     completeOnboarding(saveHistory)
-    navigate('/', { replace: true })
+    navigate('/start', { replace: true })
   }
 
   return (

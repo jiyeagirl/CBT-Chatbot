@@ -1,21 +1,34 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { getUsage, type Usage } from '../api/auth'
 import { listRecords, type ThoughtRecord } from '../api/records'
+import { GuestBanner } from '../components/guest/GuestBanner'
+import { GuestSignupSheet } from '../components/guest/GuestSignupSheet'
 import { Mascot } from '../components/Mascot'
 import { TabBar } from '../components/TabBar'
 import { formatDate } from '../lib/format'
+import { getSession } from '../lib/session'
 
 const RECENT_COUNT = 2
 
-// Figma: HiFi_2_홈 / EX_7_홈_빈상태
+// Figma: HiFi_2_홈 / EX_7_홈_빈상태 / GUEST_1_홈_비회원체험 / GUEST_2_가입유도_대화시작시
 export function Home() {
+  const navigate = useNavigate()
+  const isGuest = getSession()?.kind === 'guest'
   const [records, setRecords] = useState<ThoughtRecord[] | null>(null)
+  const [usage, setUsage] = useState<Usage | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   useEffect(() => {
     listRecords().then((all) => setRecords(all.slice(0, RECENT_COUNT)))
   }, [])
 
+  useEffect(() => {
+    if (isGuest) getUsage().then(setUsage)
+  }, [isGuest])
+
   const isFirstVisit = records !== null && records.length === 0
+  const limitReached = isGuest && usage?.signupRequired === true
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -30,8 +43,15 @@ export function Home() {
           {!isFirstVisit && <Mascot variant="waving" width={56} height={68} />}
         </header>
 
+        {isGuest && usage && <GuestBanner used={usage.sessionCount} limit={usage.limit} />}
+
         <Link
           to="/chat"
+          onClick={(e) => {
+            if (!limitReached) return
+            e.preventDefault() // 무료 대화를 다 쓴 비회원에게는 먼저 가입을 안내한다
+            setSheetOpen(true)
+          }}
           className="flex flex-col items-center justify-center gap-2 rounded-hero bg-primary py-8 text-white shadow-card"
         >
           <span className="text-[26px]/[normal]" aria-hidden>
@@ -73,6 +93,14 @@ export function Home() {
         )}
       </main>
       <TabBar />
+
+      {sheetOpen && usage && (
+        <GuestSignupSheet
+          limit={usage.limit}
+          onJoin={() => navigate('/signup')}
+          onLater={() => navigate('/chat')}
+        />
+      )}
     </div>
   )
 }

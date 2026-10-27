@@ -39,7 +39,7 @@ export function ConfirmModal({
         <h2 id={titleId} className="text-center text-[16px]/[normal] font-bold">
           {title}
         </h2>
-        <p className="text-center text-[12px]/[normal] text-muted">{description}</p>
+        <p className="text-center text-[12px]/[1.5] whitespace-pre-line text-muted">{description}</p>
         <div className="flex w-full gap-2.5">
           <button
             type="button"

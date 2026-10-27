@@ -1,7 +1,7 @@
 // 생각 기록(피그마 "기록")에 대응한다. docs/api-spec.md §6 의 /thought-records 는 아직 미확정이라
 // 모델은 Figma(기록목록·기록상세) 기준으로 정했고, 지금은 목업 데이터를 돌려준다.
 // 실제 API 연동 시 이 파일만 교체한다.
-import { ApiError } from './chat'
+import { ApiError } from './client'
 
 export const RECORD_TAGS = ['불안', '자기비판', '관계', '업무'] as const
 export type RecordTag = (typeof RECORD_TAGS)[number]

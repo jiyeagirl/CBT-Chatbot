@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 @import 'tailwindcss';
 
 /* 디자인 토큰 — Figma(상담챗봇_와이어프레임) HiFi 화면에서 추출 */
@@ -15,6 +15,9 @@
   --color-surface-muted: #f2f2f2;
   --color-surface-tint: #f6f8fc;
   --color-tag-bg: #e9eef8;
+  --color-field: #f5f5f5;
+  --color-guest-bg: #eef2fa;
+  --color-guest-dot-off: #c9d3ea;
   --color-surface-close: #f0f0f0;
   --color-call-bg: #1a1a1c;
   --color-call-ring: #3f5a99;

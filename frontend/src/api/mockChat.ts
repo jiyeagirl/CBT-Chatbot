@@ -2,8 +2,8 @@
 // 위기 감지는 실제로는 서버가 하며, 여기서는 UI 확인용으로만 키워드를 본다.
 import { DEFAULT_CRISIS_RESOURCES } from '../lib/crisis'
 import type { ChatEvent } from './chat'
+import { mockBumpSession, mockUsage } from './mockAuth'
 
-const GUEST_SESSION_LIMIT = 3
 const CRISIS_KEYWORDS = ['죽고 싶', '죽고싶', '자살']
 const FAIL_TRIGGER = '[실패]' // 전송 실패 UI 확인용: 이 문구가 든 메시지는 처음 한 번만 실패한다
 
@@ -15,15 +15,14 @@ const replies = [
 
 export const mockOptions = { delayMs: 35 }
 
-let sessionCount = 0
 let replyIndex = 0
 const failedOnce = new Set<string>()
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export async function mockCreateConversation(): Promise<string> {
-  sessionCount += 1
-  return `mock-${sessionCount}`
+  mockBumpSession()
+  return `mock-${Date.now()}`
 }
 
 export async function* mockStreamMessage(content: string): AsyncGenerator<ChatEvent> {
@@ -40,7 +39,7 @@ export async function* mockStreamMessage(content: string): AsyncGenerator<ChatEv
     type: 'meta',
     messageId,
     crisis,
-    signupRequired: sessionCount >= GUEST_SESSION_LIMIT,
+    signupRequired: (await mockUsage()).signupRequired,
     crisisResources: crisis ? DEFAULT_CRISIS_RESOURCES : [],
   }
 

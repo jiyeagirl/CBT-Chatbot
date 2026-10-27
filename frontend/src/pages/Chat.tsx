@@ -5,6 +5,7 @@ import { MessageBubble } from '../components/chat/MessageBubble'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { CrisisFlow } from '../components/crisis/CrisisFlow'
 import { useChat } from '../hooks/useChat'
+import { getSession } from '../lib/session'
 
 // 기록 상세의 "이 기록에서 대화 이어가기"에서 넘어오면 그 기록을 첫 인사에 반영한다.
 function greetingFor(state: unknown): string | undefined {
@@ -20,6 +21,7 @@ export function Chat() {
   const { messages, busy, crisis, send, retry } = useChat(greetingFor(location.state))
   const [dismissedCrisis, setDismissedCrisis] = useState<string | null>(null)
   const [confirmingEnd, setConfirmingEnd] = useState(false)
+  const [offeringSave, setOfferingSave] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -27,6 +29,14 @@ export function Chat() {
   }, [messages])
 
   const leave = () => navigate('/', { replace: true })
+
+  // 비회원이 실제로 이야기를 나눴다면, 나가기 전에 기록 보관(가입)을 한 번 안내한다.
+  const endChat = () => {
+    setConfirmingEnd(false)
+    const talked = messages.some((m) => m.role === 'user')
+    if (getSession()?.kind === 'guest' && talked) setOfferingSave(true)
+    else leave()
+  }
 
   return (
     <div className="flex h-dvh flex-col">
@@ -70,7 +80,18 @@ export function Chat() {
           description="지금까지 나눈 이야기는 기록 저장 동의 여부에 따라 보관돼요."
           confirmLabel="종료하기"
           onCancel={() => setConfirmingEnd(false)}
-          onConfirm={leave}
+          onConfirm={endChat}
+        />
+      )}
+
+      {offeringSave && (
+        <ConfirmModal
+          title="오늘 나눈 대화, 보관해둘까요?"
+          description={'비회원 기록은 이 기기에만 남아서, 앱을 지우거나\n기기를 바꾸면 다시 볼 수 없어요.\n가입하면 언제든 이어서 볼 수 있어요.'}
+          cancelLabel="괜찮아요"
+          confirmLabel="가입하고 보관하기"
+          onCancel={leave}
+          onConfirm={() => navigate('/signup', { replace: true })}
         />
       )}
     </div>
