@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import toggleOn from '../assets/toggle-on.svg'
 import { Mascot, type MascotVariant } from '../components/Mascot'
+import { Toggle } from '../components/Toggle'
 import { completeOnboarding } from '../lib/preferences'
 
 type Step = {
@@ -80,22 +80,14 @@ export function Onboarding() {
         </p>
 
         {isLast && (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={saveHistory}
-            onClick={() => setSaveHistory(!saveHistory)}
-            className="flex items-center gap-2.5 rounded-xl bg-white px-4 py-3 shadow-card"
+          <Toggle
+            checked={saveHistory}
+            onChange={setSaveHistory}
+            iconPosition="start"
+            className="gap-2.5 rounded-xl bg-white px-4 py-3 shadow-card"
           >
-            {saveHistory ? (
-              <img src={toggleOn} alt="" width={40} height={22} />
-            ) : (
-              <span className="flex h-[22px] w-10 items-center rounded-full bg-line px-[3px]">
-                <span className="size-4 rounded-full bg-white" />
-              </span>
-            )}
             <span className="text-[12.5px]/[normal]">대화 기록 저장하기</span>
-          </button>
+          </Toggle>
         )}
       </main>
 

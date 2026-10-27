@@ -5,6 +5,7 @@ type ConfirmModalProps = {
   description: string
   cancelLabel?: string
   confirmLabel: string
+  tone?: 'primary' | 'danger' // 삭제처럼 되돌릴 수 없는 동작은 danger
   onCancel: () => void
   onConfirm: () => void
 }
@@ -15,6 +16,7 @@ export function ConfirmModal({
   description,
   cancelLabel = '취소',
   confirmLabel,
+  tone = 'primary',
   onCancel,
   onConfirm,
 }: ConfirmModalProps) {
@@ -49,7 +51,9 @@ export function ConfirmModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 rounded-xl bg-primary py-3 text-[13px]/[normal] font-bold text-white"
+            className={`flex-1 rounded-xl py-3 text-[13px]/[normal] font-bold text-white ${
+              tone === 'danger' ? 'bg-danger' : 'bg-primary'
+            }`}
           >
             {confirmLabel}
           </button>

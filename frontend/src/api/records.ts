@@ -101,3 +101,7 @@ export async function updateRecord(id: string, patch: RecordPatch): Promise<Thou
   store[index] = copy({ ...store[index], ...patch })
   return copy(store[index])
 }
+
+export async function deleteAllRecords(): Promise<void> {
+  store = []
+}
