@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { isOnboarded } from './lib/preferences'
+import { Chat } from './pages/Chat'
 import { Home } from './pages/Home'
 import { Onboarding } from './pages/Onboarding'
 
@@ -18,6 +19,14 @@ export default function App() {
           element={
             <RequireOnboarding>
               <Home />
+            </RequireOnboarding>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <RequireOnboarding>
+              <Chat />
             </RequireOnboarding>
           }
         />

@@ -8,6 +8,11 @@
   --color-primary: #5170b8;
   --color-line: #e5ded1;
   --color-handle: #1a1a1a;
+  --color-bubble-user: #dde5f6;
+  --color-bubble-user-ink: #2e3f66;
+  --color-danger: #bf6b61;
+  --color-placeholder: #ada699;
+  --color-surface-muted: #f2f2f2;
 
   --radius-card: 10px;
   --radius-button: 14px;
