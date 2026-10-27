@@ -1,5 +1,6 @@
 // 백엔드 없이 채팅 화면을 개발하기 위한 목업. api-spec 의 SSE 이벤트 순서를 그대로 흉내 낸다.
 // 위기 감지는 실제로는 서버가 하며, 여기서는 UI 확인용으로만 키워드를 본다.
+import { DEFAULT_CRISIS_RESOURCES } from '../lib/crisis'
 import type { ChatEvent } from './chat'
 
 const GUEST_SESSION_LIMIT = 3
@@ -40,7 +41,7 @@ export async function* mockStreamMessage(content: string): AsyncGenerator<ChatEv
     messageId,
     crisis,
     signupRequired: sessionCount >= GUEST_SESSION_LIMIT,
-    crisisResources: crisis ? [{ name: '자살예방 상담전화', tel: '109' }] : [],
+    crisisResources: crisis ? DEFAULT_CRISIS_RESOURCES : [],
   }
 
   const text = crisis

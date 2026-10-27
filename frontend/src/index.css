@@ -13,6 +13,16 @@
   --color-danger: #bf6b61;
   --color-placeholder: #ada699;
   --color-surface-muted: #f2f2f2;
+  --color-surface-tint: #f6f8fc;
+  --color-surface-close: #f0f0f0;
+  --color-call-bg: #1a1a1c;
+  --color-call-ring: #3f5a99;
+  --color-call-fail-ring: #594745;
+  --color-call-end: #db403d;
+  --color-call-fail-text: #d99994;
+  --color-call-sub: #bfbfbf;
+  --color-call-label: #d9d9d9;
+  --color-call-hint: #999999;
 
   --radius-card: 10px;
   --radius-button: 14px;

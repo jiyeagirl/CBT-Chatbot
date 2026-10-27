@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { ChatInput } from '../components/chat/ChatInput'
 import { MessageBubble } from '../components/chat/MessageBubble'
 import { ConfirmModal } from '../components/ConfirmModal'
+import { CrisisFlow } from '../components/crisis/CrisisFlow'
 import { useChat } from '../hooks/useChat'
 
 export function Chat() {
   const navigate = useNavigate()
-  const { messages, busy, send, retry } = useChat()
+  const { messages, busy, crisis, send, retry } = useChat()
+  const [dismissedCrisis, setDismissedCrisis] = useState<string | null>(null)
   const [confirmingEnd, setConfirmingEnd] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -48,6 +50,10 @@ export function Chat() {
       </main>
 
       <ChatInput disabled={busy} onSend={send} />
+
+      {crisis && crisis.messageId !== dismissedCrisis && (
+        <CrisisFlow resources={crisis.resources} onClose={() => setDismissedCrisis(crisis.messageId)} />
+      )}
 
       {confirmingEnd && (
         <ConfirmModal

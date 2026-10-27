@@ -57,6 +57,16 @@ describe('Chat', () => {
     expect(screen.getByText('홈')).toBeInTheDocument()
   })
 
+  it('위기 표현을 보내면 상담 전화 안내 시트가 뜨고, 일반 대화로 돌아갈 수 있다', async () => {
+    const user = renderChat()
+    await user.type(screen.getByLabelText('메시지 입력'), '그냥 죽고 싶어')
+    await user.click(screen.getByRole('button', { name: '보내기' }))
+
+    expect(await screen.findByRole('dialog', { name: '지금 많이 힘드신 것 같아요' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '일반 대화로 돌아가기' }))
+    expect(screen.queryByRole('dialog', { name: '지금 많이 힘드신 것 같아요' })).not.toBeInTheDocument()
+  })
+
   it('입력이 비어 있으면 보낼 수 없다', () => {
     renderChat()
     expect(screen.getByRole('button', { name: '보내기' })).toBeDisabled()

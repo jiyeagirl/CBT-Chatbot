@@ -17,7 +17,7 @@ const GREETING: ChatMessage = {
   status: 'sent',
 }
 
-export type CrisisState = { resources: CrisisResource[] } | null
+export type CrisisState = { messageId: string; resources: CrisisResource[] } | null
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING])
@@ -44,7 +44,7 @@ export function useChat() {
       conversationId.current ??= await createConversation()
       for await (const event of streamMessage(conversationId.current, content)) {
         if (event.type === 'meta') {
-          if (event.crisis) setCrisis({ resources: event.crisisResources })
+          if (event.crisis) setCrisis({ messageId: event.messageId, resources: event.crisisResources })
           if (event.signupRequired) setSignupRequired(true)
         } else if (event.type === 'token') {
           update(replyId, (m) => ({ content: m.content + event.delta }))
