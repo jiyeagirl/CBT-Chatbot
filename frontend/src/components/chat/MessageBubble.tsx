@@ -29,7 +29,7 @@ export function MessageBubble({ role, children, failed, onRetry }: MessageBubble
     <div className="flex flex-col items-end gap-2.5">
       <p className={`${bubble} bg-bubble-user text-bubble-user-ink`}>{children}</p>
       {failed && (
-        <button type="button" onClick={onRetry} className="flex items-center gap-1.5 text-danger">
+        <button type="button" onClick={onRetry} className="-my-2 flex items-center gap-1.5 py-2 text-danger">
           <span className="flex size-[18px] items-center justify-center rounded-[9px] bg-danger text-[11px]/[normal] font-bold text-white">
             !
           </span>

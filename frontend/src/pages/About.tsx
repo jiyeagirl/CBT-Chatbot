@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { version } from '../../package.json'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 // 임시 화면: 피그마에 "앱 정보" 화면이 아직 없다. 디자인이 나오면 교체한다.
 export function About() {
+  useDocumentTitle('앱 정보')
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="px-4 pt-5 pb-2.5">

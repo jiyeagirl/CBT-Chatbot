@@ -4,6 +4,7 @@ import { listRecords, RECORD_TAGS, type RecordTag, type ThoughtRecord } from '..
 import { Mascot } from '../components/Mascot'
 import { TabBar } from '../components/TabBar'
 import { formatDate } from '../lib/format'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 type Filter = '전체' | RecordTag
 
@@ -11,6 +12,7 @@ const chip = 'rounded-2xl px-3.5 py-2 text-[11.5px]/[14px]'
 
 // Figma: HiFi_5_기록목록 / EX_8_기록목록_빈상태
 export function Records() {
+  useDocumentTitle('내 기록')
   const [records, setRecords] = useState<ThoughtRecord[] | null>(null)
   const [filter, setFilter] = useState<Filter>('전체')
 
@@ -68,7 +70,7 @@ export function Records() {
                   <span className="flex flex-1 flex-col items-start gap-1">
                     <span className="text-[10.5px]/[13px] text-muted">{formatDate(record.date)}</span>
                     <span className="text-[12.5px]/[15px]">{record.title}</span>
-                    <span className="rounded-[10px] bg-tag-bg px-2 py-[3px] text-[10px]/[12px] text-primary">
+                    <span className="rounded-[10px] bg-tag-bg px-2 py-[3px] text-[10px]/[12px] text-primary-ink">
                       {record.tag}
                     </span>
                   </span>

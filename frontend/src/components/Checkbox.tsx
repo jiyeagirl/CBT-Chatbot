@@ -15,7 +15,7 @@ export function Checkbox({ checked, onChange, children, className = '' }: Checkb
       role="checkbox"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`flex items-center gap-2.5 text-left ${className}`}
+      className={`-my-1.5 flex items-center gap-2.5 py-1.5 text-left ${className}`}
     >
       <span
         aria-hidden

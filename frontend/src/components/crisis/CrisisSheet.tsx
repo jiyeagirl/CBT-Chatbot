@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { CrisisResource } from '../../api/chat'
+import { useDialogFocus } from '../../hooks/useDialogFocus'
 import { telHref } from '../../lib/crisis'
 import { Mascot } from '../Mascot'
 
@@ -11,10 +12,11 @@ type CrisisSheetProps = {
 
 // Figma: HiFi_6_위기대응 / DEMO_위기감지_2_시트표시
 export function CrisisSheet({ resources, onCall, onClose }: CrisisSheetProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   const firstCall = useRef<HTMLAnchorElement>(null)
+  useDialogFocus(dialogRef, firstCall)
 
   useEffect(() => {
-    firstCall.current?.focus()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -23,17 +25,19 @@ export function CrisisSheet({ resources, onCall, onClose }: CrisisSheetProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45">
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="crisis-title"
-        className="flex max-h-[92dvh] w-full max-w-[393px] flex-col items-center gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-5 pt-3.5 pb-5 shadow-[0_-4px_20px_0_rgb(0_0_0/0.18)]"
+        className="flex max-h-[92dvh] w-full max-w-[393px] flex-col items-center gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-5 pt-3.5 pb-5 shadow-[0_-4px_20px_0_rgb(0_0_0/0.18)] outline-none"
       >
         <div className="flex w-full justify-end">
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="flex size-[30px] items-center justify-center rounded-[15px] bg-surface-close text-[13px]/[normal] text-muted"
+            className="relative flex size-[30px] items-center justify-center rounded-[15px] bg-surface-close text-[13px]/[normal] text-muted after:absolute after:-inset-[7px] after:content-['']"
           >
             ✕
           </button>

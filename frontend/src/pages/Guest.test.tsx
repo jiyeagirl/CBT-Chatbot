@@ -124,7 +124,7 @@ describe('비회원 대화 종료', () => {
   const sendAndEnd = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.type(screen.getByLabelText('메시지 입력'), '오늘은 여기까지 얘기하고 싶어요')
     await user.click(screen.getByRole('button', { name: '보내기' }))
-    await screen.findByText(/마음이 어떠셨어요|이야기해 주실|떠올려 볼까요/)
+    await screen.findAllByText(/마음이 어떠셨어요|이야기해 주실|떠올려 볼까요/)
     await user.click(screen.getByRole('button', { name: '대화 종료' }))
     await user.click(screen.getByRole('button', { name: '종료하기' }))
   }
@@ -169,7 +169,7 @@ describe('무료 대화 사용량 집계', () => {
     const user = renderChat()
     await user.type(screen.getByLabelText('메시지 입력'), '안녕')
     await user.click(screen.getByRole('button', { name: '보내기' }))
-    await screen.findByText(/마음이 어떠셨어요|이야기해 주실|떠올려 볼까요/)
+    await screen.findAllByText(/마음이 어떠셨어요|이야기해 주실|떠올려 볼까요/)
     expect(localStorage.getItem('synap.mock.sessionCount')).toBe('1')
   })
 })

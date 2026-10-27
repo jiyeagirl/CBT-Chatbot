@@ -8,6 +8,7 @@ import { CrisisFlow } from '../components/crisis/CrisisFlow'
 import { useChat } from '../hooks/useChat'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { getSession } from '../lib/session'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 // 기록 상세의 "이 기록에서 대화 이어가기"에서 넘어오면 그 기록을 첫 인사에 반영한다.
 function greetingFor(state: unknown): string | undefined {
@@ -18,6 +19,7 @@ function greetingFor(state: unknown): string | undefined {
 }
 
 export function Chat() {
+  useDocumentTitle('대화')
   const navigate = useNavigate()
   const location = useLocation()
   const { messages, busy, crisis, send, retry } = useChat(greetingFor(location.state))
@@ -41,24 +43,29 @@ export function Chat() {
     else leave()
   }
 
+  // 답변이 다 도착했을 때만 한 번 읽어 준다. (글자가 늘어날 때마다 읽으면 알아듣기 어렵다)
+  const last = messages[messages.length - 1]
+  const announcement =
+    last?.role === 'assistant' && last.status === 'sent' && last.id !== 'greeting' ? last.content : ''
+
   return (
     <div className="flex h-dvh flex-col">
       {!online && <OfflineBanner />}
       <header className={`flex items-center justify-between px-4 pb-2.5 ${online ? 'pt-5' : 'pt-1.5'}`}>
-        <button type="button" onClick={leave} aria-label="뒤로" className="text-[20px]/[normal]">
+        <button type="button" onClick={leave} aria-label="뒤로" className="-m-3 p-3 text-[20px]/[normal]">
           ‹
         </button>
         <h1 className="text-[14px]/[normal] font-bold">대화</h1>
         <button
           type="button"
           onClick={() => setConfirmingEnd(true)}
-          className="rounded-[20px] border border-line bg-white px-3 py-1.5 text-[11px]/[normal] text-muted"
+          className="relative rounded-[20px] border border-line bg-white px-3 py-1.5 text-[11px]/[normal] text-muted after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']"
         >
           대화 종료
         </button>
       </header>
 
-      <main className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 pt-1.5 pb-3" aria-live="polite">
+      <main className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 pt-1.5 pb-3">
         {messages.map((m) => (
           <MessageBubble
             key={m.id}
@@ -71,6 +78,9 @@ export function Chat() {
         ))}
         <div ref={bottomRef} />
       </main>
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
 
       <ChatInput disabled={busy} offline={!online} onSend={send} />
 

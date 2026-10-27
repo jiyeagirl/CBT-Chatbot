@@ -15,7 +15,7 @@ export function TabBar() {
           to={tab.to}
           end={tab.to === '/'}
           className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 text-[10px]/[normal] ${
+            `-mx-3 flex flex-col items-center gap-0.5 px-3 text-[10px]/[normal] ${
               isActive ? 'font-bold text-primary' : 'text-muted'
             }`
           }

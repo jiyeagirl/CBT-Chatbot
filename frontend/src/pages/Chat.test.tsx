@@ -29,7 +29,7 @@ describe('Chat', () => {
     await user.click(screen.getByRole('button', { name: '보내기' }))
 
     expect(screen.getByText('요즘 실수가 잦아요')).toBeInTheDocument()
-    expect(await screen.findByText(/마음이 어떠셨어요|이야기해 주실|떠올려 볼까요/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/마음이 어떠셨어요|이야기해 주실|떠올려 볼까요/)).length).toBeGreaterThan(0)
   })
 
   it('전송에 실패하면 안내를 보여주고, 다시 시도하면 응답을 받는다', async () => {
@@ -40,7 +40,7 @@ describe('Chat', () => {
     const retry = await screen.findByRole('button', { name: /전송 실패/ })
     await user.click(retry)
 
-    expect(await screen.findByText(/마음이 어떠셨어요|이야기해 주실|떠올려 볼까요/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/마음이 어떠셨어요|이야기해 주실|떠올려 볼까요/)).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /전송 실패/ })).not.toBeInTheDocument()
   })
 

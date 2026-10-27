@@ -8,11 +8,13 @@ import { Mascot } from '../components/Mascot'
 import { TabBar } from '../components/TabBar'
 import { formatDate } from '../lib/format'
 import { getSession } from '../lib/session'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 const RECENT_COUNT = 2
 
 // Figma: HiFi_2_홈 / EX_7_홈_빈상태 / GUEST_1_홈_비회원체험 / GUEST_2_가입유도_대화시작시
 export function Home() {
+  useDocumentTitle('홈')
   const navigate = useNavigate()
   const isGuest = getSession()?.kind === 'guest'
   const [records, setRecords] = useState<ThoughtRecord[] | null>(null)

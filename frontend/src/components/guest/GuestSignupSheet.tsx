@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useDialogFocus } from '../../hooks/useDialogFocus'
 import { Mascot } from '../Mascot'
 
 type GuestSignupSheetProps = {
@@ -16,6 +17,10 @@ const BENEFITS = [
 // Figma: GUEST_2_가입유도_대화시작시 — 무료 대화를 모두 쓴 비회원이 새 대화를 시작하려 할 때
 // "다음에 할게요"로 계속 이용할 수 있다. (API 명세 §4: 한도를 넘어도 막지 않고 안내만 한다 — 합의 전)
 export function GuestSignupSheet({ limit, onJoin, onLater }: GuestSignupSheetProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const joinRef = useRef<HTMLButtonElement>(null)
+  useDialogFocus(dialogRef, joinRef)
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onLater()
     window.addEventListener('keydown', onKey)
@@ -25,10 +30,12 @@ export function GuestSignupSheet({ limit, onJoin, onLater }: GuestSignupSheetPro
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="guest-sheet-title"
-        className="flex max-h-[92dvh] w-full max-w-[393px] flex-col items-center gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-6 pt-2.5 pb-4 shadow-[0_-4px_20px_0_rgb(0_0_0/0.12)]"
+        className="flex max-h-[92dvh] w-full max-w-[393px] flex-col items-center gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-6 pt-2.5 pb-4 shadow-[0_-4px_20px_0_rgb(0_0_0/0.12)] outline-none"
       >
         <span aria-hidden className="h-1 w-10 rounded-sm bg-line" />
         <Mascot variant="thinking" width={120} height={120} />
@@ -55,13 +62,18 @@ export function GuestSignupSheet({ limit, onJoin, onLater }: GuestSignupSheetPro
         </ul>
 
         <button
+          ref={joinRef}
           type="button"
           onClick={onJoin}
           className="w-full rounded-button bg-primary p-4 text-[15px]/[normal] font-bold text-white"
         >
           가입하고 계속하기
         </button>
-        <button type="button" onClick={onLater} className="text-[13px]/[normal] font-medium text-muted underline">
+        <button
+          type="button"
+          onClick={onLater}
+          className="py-2 text-[13px]/[normal] font-medium text-muted underline"
+        >
           다음에 할게요
         </button>
       </div>

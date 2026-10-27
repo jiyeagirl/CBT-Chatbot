@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GUEST_SESSION_LIMIT, startGuest } from '../api/auth'
 import { Mascot } from '../components/Mascot'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 // Figma: AUTH_1_시작선택
 export function Start() {
+  useDocumentTitle('시작하기')
   const navigate = useNavigate()
   const [starting, setStarting] = useState(false)
 
@@ -19,8 +21,8 @@ export function Start() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <main className="flex flex-1 flex-col items-center justify-center gap-4 px-7 py-5">
+    <main className="flex min-h-dvh flex-col">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-7 py-5">
         <Mascot variant="waving" width={170} height={208} />
         <h1 className="text-center text-[22px]/[normal] font-bold">Synap과 함께 시작해요</h1>
         <p className="text-center text-[13px]/[1.5] text-muted">
@@ -28,7 +30,7 @@ export function Start() {
           <br />
           어느 기기에서든 이어서 이야기할 수 있어요.
         </p>
-      </main>
+      </div>
 
       <div className="flex flex-col items-center gap-2.5 px-7 pt-2 pb-4">
         <Link
@@ -48,7 +50,7 @@ export function Start() {
             type="button"
             onClick={continueAsGuest}
             disabled={starting}
-            className="text-[13px]/[normal] font-medium text-muted underline disabled:opacity-60"
+            className="-my-2 py-2 text-[13px]/[normal] font-medium text-muted underline disabled:opacity-60"
           >
             비회원으로 먼저 써볼게요
           </button>
@@ -57,6 +59,6 @@ export function Start() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

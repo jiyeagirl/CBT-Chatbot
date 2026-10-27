@@ -1,6 +1,7 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getRecord, updateRecord, type ThoughtRecord } from '../api/records'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { formatDate } from '../lib/format'
 
 type Field = 'situation' | 'firstThought' | 'emotions' | 'findings' | 'alternative' | 'nextAction'
@@ -34,6 +35,8 @@ export function RecordDetail() {
   const [draft, setDraft] = useState<Draft | null>(null)
   const [editing, setEditing] = useState<Field | null>(null)
   const [status, setStatus] = useState<'saved' | 'error' | null>(null)
+
+  useDocumentTitle(record ? record.title : '기록')
 
   useEffect(() => {
     let cancelled = false
@@ -83,23 +86,24 @@ export function RecordDetail() {
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex items-center justify-between px-4 pt-5 pb-2.5 text-muted">
-        <Link to="/records" className="text-[13px]/[normal]">
+        <Link to="/records" className="-m-3 p-3 text-[13px]/[normal]">
           ‹ 목록으로
         </Link>
         <span className="text-[11.5px]/[normal]">{formatDate(record.date)}</span>
       </header>
 
       <main className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 pt-1 pb-4">
+        <h1 className="sr-only">{record.title}</h1>
         {SECTIONS.map(({ key, label }) => (
           <section key={key} aria-label={label} className="flex flex-col gap-2 rounded-xl bg-white p-3.5 shadow-card">
             <div className="flex items-center justify-between text-muted">
               <h2 className="text-[11.5px]/[14px] font-bold">{label}</h2>
-              <div className="flex gap-2.5">
+              <div className="flex">
                 <button
                   type="button"
                   aria-label={`${label} 수정`}
                   onClick={() => setEditing(key)}
-                  className={`text-[12px]/[14px] ${cardIcon}`}
+                  className={`-my-3 px-2 py-3 text-[12px]/[14px] ${cardIcon}`}
                 >
                   ✎
                 </button>
@@ -107,7 +111,7 @@ export function RecordDetail() {
                   type="button"
                   aria-label={`${label} 비우기`}
                   onClick={() => change(key, key === 'emotions' ? [] : '')}
-                  className={`text-[11px]/[14px] ${cardIcon}`}
+                  className={`-my-3 px-2 py-3 text-[11px]/[14px] ${cardIcon}`}
                 >
                   ✕
                 </button>
@@ -188,14 +192,14 @@ function EmotionChips({ emotions, editing, onChange, onDone }: EmotionChipsProps
       {emotions.map((emotion) => (
         <span
           key={emotion}
-          className="flex items-center gap-1 rounded-[14px] bg-tag-bg px-2.5 py-1.5 text-[11.5px]/[14px] text-primary"
+          className="flex items-center gap-1 rounded-[14px] bg-tag-bg px-2.5 py-1.5 text-[11.5px]/[14px] text-primary-ink"
         >
           {emotion}
           <button
             type="button"
             aria-label={`${emotion} 제거`}
             onClick={() => onChange(emotions.filter((e) => e !== emotion))}
-            className="text-[9px]/[14px]"
+            className="-m-2 p-2 text-[9px]/[14px]"
           >
             ✕
           </button>

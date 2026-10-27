@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Mascot, type MascotVariant } from '../components/Mascot'
 import { Toggle } from '../components/Toggle'
 import { completeOnboarding } from '../lib/preferences'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 type Step = {
   title: string
@@ -35,6 +36,7 @@ const steps: Step[] = [
 ]
 
 export function Onboarding() {
+  useDocumentTitle('시작하기')
   const navigate = useNavigate()
   const [index, setIndex] = useState(0)
   const [saveHistory, setSaveHistory] = useState(true)
@@ -51,7 +53,7 @@ export function Onboarding() {
     <div className="flex min-h-dvh flex-col">
       <div className="flex justify-end px-6 py-1 pt-5">
         {!isLast && (
-          <button type="button" onClick={finish} className="text-[12px]/[normal] text-muted">
+          <button type="button" onClick={finish} className="-m-3 p-3 text-[12px]/[normal] text-muted">
             건너뛰기
           </button>
         )}

@@ -14,6 +14,7 @@ import {
   setSaveHistory,
   type RetentionDays,
 } from '../lib/preferences'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 const retentionLabel = (days: RetentionDays) => (days === 365 ? '1년' : `${days}일`)
 
@@ -25,6 +26,7 @@ type Dialog = 'delete-all' | 'withdraw' | null
 // Figma: HiFi_7_설정 / EX_2_기록삭제_확인모달 / EX_3_동의철회_확인모달
 // 보관 기간·동의 철회는 서버 정책(docs/api-spec.md §7-5)이 정해지기 전까지 이 기기의 설정으로만 동작한다.
 export function Settings() {
+  useDocumentTitle('설정')
   const [days, setDays] = useState(getRetentionDays)
   const [saveHistory, setSaveHistoryState] = useState(isSaveHistory)
   const [notifications, setNotificationsState] = useState(isNotificationsOn)
@@ -77,7 +79,7 @@ export function Settings() {
                 aria-label="기록 저장 기간"
                 value={days}
                 onChange={(e) => changeRetention(Number(e.target.value))}
-                className="cursor-pointer appearance-none bg-transparent text-right outline-none"
+                className="-my-3.5 -ml-3 cursor-pointer appearance-none bg-transparent py-3.5 pl-3 text-right outline-none"
               >
                 {RETENTION_OPTIONS.map((option) => (
                   <option key={option} value={option}>

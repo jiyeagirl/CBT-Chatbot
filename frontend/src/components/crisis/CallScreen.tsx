@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { CrisisResource } from '../../api/chat'
+import { useDialogFocus } from '../../hooks/useDialogFocus'
 import { telHref } from '../../lib/crisis'
 
 // 전화 앱으로 넘어가지 않은 채 이 시간이 지나면 연결 실패로 본다. (웹은 통화 성공 여부를 알 수 없다)
@@ -22,6 +23,10 @@ export function CallingScreen({ resource, onFail, onEnd }: CallingProps) {
     failRef.current = onFail
   })
 
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const endRef = useRef<HTMLButtonElement>(null)
+  useDialogFocus(dialogRef, endRef)
+
   useEffect(() => {
     // 전화 앱이 열리면 페이지가 가려지거나 포커스를 잃는다 → 연결 시도가 넘어간 것으로 본다.
     const timer = window.setTimeout(() => failRef.current(), CALL_TIMEOUT_MS)
@@ -40,7 +45,7 @@ export function CallingScreen({ resource, onFail, onEnd }: CallingProps) {
   }, [])
 
   return (
-    <div className={frame} role="dialog" aria-modal="true" aria-label="전화 연결 중">
+    <div ref={dialogRef} tabIndex={-1} className={`${frame} outline-none`} role="dialog" aria-modal="true" aria-label="전화 연결 중">
       <div className={column}>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 pt-10 pb-5">
           <p className="text-[14px]/[normal] text-call-sub" role="status">
@@ -73,6 +78,7 @@ export function CallingScreen({ resource, onFail, onEnd }: CallingProps) {
 
         <div className="flex justify-center pb-[50px]">
           <button
+            ref={endRef}
             type="button"
             onClick={onEnd}
             aria-label="통화 종료"
@@ -94,8 +100,12 @@ type CallFailedProps = {
 
 // Figma: EX_6_전화연결실패
 export function CallFailedScreen({ resource, onRetry, onClose }: CallFailedProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const retryRef = useRef<HTMLAnchorElement>(null)
+  useDialogFocus(dialogRef, retryRef)
+
   return (
-    <div className={frame} role="alertdialog" aria-modal="true" aria-label="전화 연결 실패">
+    <div ref={dialogRef} tabIndex={-1} className={`${frame} outline-none`} role="alertdialog" aria-modal="true" aria-label="전화 연결 실패">
       <div className={column}>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 pt-10 pb-5">
           <p className="text-[14px]/[normal] text-call-fail-text">연결할 수 없어요</p>
@@ -111,6 +121,7 @@ export function CallFailedScreen({ resource, onRetry, onClose }: CallFailedProps
 
         <div className="flex flex-col gap-3 px-7 pb-[50px]">
           <a
+            ref={retryRef}
             href={telHref(resource.tel)}
             onClick={onRetry}
             className="flex items-center justify-center rounded-button bg-primary py-[15px] text-[14px]/[normal] font-bold"

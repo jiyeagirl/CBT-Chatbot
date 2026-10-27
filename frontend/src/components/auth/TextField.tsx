@@ -36,7 +36,7 @@ export function TextField({
         {label}
       </label>
       <div
-        className={`flex items-center gap-2 rounded-xl border-[1.5px] bg-field px-4 py-3.5 focus-within:bg-white ${
+        className={`flex items-center gap-2 rounded-xl border-[1.5px] bg-field px-4 focus-within:bg-white ${
           error ? 'border-danger' : 'border-transparent focus-within:border-primary'
         }`}
       >
@@ -49,7 +49,7 @@ export function TextField({
           aria-invalid={error ? true : undefined}
           aria-describedby={note ? noteId : undefined}
           onChange={(e) => onChange(e.target.value)}
-          className="min-w-0 flex-1 bg-transparent text-[13.5px]/[normal] outline-none placeholder:text-placeholder"
+          className="min-w-0 flex-1 bg-transparent py-3.5 text-[13.5px]/[normal] outline-none placeholder:text-placeholder"
         />
         {trailing}
       </div>
@@ -83,7 +83,7 @@ export function PasswordField(props: PasswordFieldProps) {
           aria-pressed={shown}
           aria-label={shown ? '비밀번호 숨기기' : '비밀번호 보기'}
           onClick={() => setShown(!shown)}
-          className="shrink-0 text-[12px]/[normal] font-medium text-muted"
+          className="-m-3 shrink-0 p-3 text-[12px]/[normal] font-medium text-muted"
         >
           {shown ? '숨기기' : '보기'}
         </button>

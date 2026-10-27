@@ -18,7 +18,7 @@ export function ChatInput({ disabled, offline, onSend }: ChatInputProps) {
   }
 
   return (
-    <form onSubmit={submit} className="flex items-center gap-2 bg-white px-4 py-2.5">
+    <form onSubmit={submit} aria-label="메시지 보내기" className="flex items-center gap-2 bg-white px-4 py-2.5">
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}

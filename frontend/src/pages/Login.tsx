@@ -5,9 +5,11 @@ import { ApiError } from '../api/client'
 import { PasswordField, TextField } from '../components/auth/TextField'
 import { Checkbox } from '../components/Checkbox'
 import { isEmail } from '../lib/validation'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 // Figma: AUTH_2_로그인
 export function Login() {
+  useDocumentTitle('로그인')
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,9 +40,9 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <main className="flex min-h-dvh flex-col">
       <header className="flex items-center justify-between px-4 pt-5 pb-2.5">
-        <Link to="/start" aria-label="뒤로" className="text-[20px]/[normal]">
+        <Link to="/start" aria-label="뒤로" className="-m-3 p-3 text-[20px]/[normal]">
           ‹
         </Link>
         <h1 className="text-[14px]/[normal] font-bold">로그인</h1>
@@ -92,7 +94,7 @@ export function Login() {
           <span aria-hidden className="text-[11px]/[normal] text-line">
             |
           </span>
-          <Link to="/signup" className="text-[12px]/[normal] font-bold text-primary">
+          <Link to="/signup" className="-my-2 py-2 text-[12px]/[normal] font-bold text-primary">
             회원가입
           </Link>
         </div>
@@ -102,11 +104,11 @@ export function Login() {
         <button
           type="button"
           onClick={continueAsGuest}
-          className="text-[13px]/[normal] font-medium text-muted underline"
+          className="-my-2 py-2 text-[13px]/[normal] font-medium text-muted underline"
         >
           비회원으로 계속하기
         </button>
       </div>
-    </div>
+    </main>
   )
 }
