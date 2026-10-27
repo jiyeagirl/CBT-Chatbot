@@ -1,14 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ChatInput } from '../components/chat/ChatInput'
 import { MessageBubble } from '../components/chat/MessageBubble'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { CrisisFlow } from '../components/crisis/CrisisFlow'
 import { useChat } from '../hooks/useChat'
 
+// 기록 상세의 "이 기록에서 대화 이어가기"에서 넘어오면 그 기록을 첫 인사에 반영한다.
+function greetingFor(state: unknown): string | undefined {
+  const title = (state as { record?: { title?: unknown } } | null)?.record?.title
+  return typeof title === 'string'
+    ? `지난번에 '${title}' 이야기를 나눴어요. 오늘은 이어서 어떤 이야기를 해볼까요?`
+    : undefined
+}
+
 export function Chat() {
   const navigate = useNavigate()
-  const { messages, busy, crisis, send, retry } = useChat()
+  const location = useLocation()
+  const { messages, busy, crisis, send, retry } = useChat(greetingFor(location.state))
   const [dismissedCrisis, setDismissedCrisis] = useState<string | null>(null)
   const [confirmingEnd, setConfirmingEnd] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)

@@ -19,8 +19,10 @@ const GREETING: ChatMessage = {
 
 export type CrisisState = { messageId: string; resources: CrisisResource[] } | null
 
-export function useChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([GREETING])
+export function useChat(greeting?: string) {
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    greeting ? { ...GREETING, content: greeting } : GREETING,
+  ])
   const [busy, setBusy] = useState(false)
   const [crisis, setCrisis] = useState<CrisisState>(null)
   const [signupRequired, setSignupRequired] = useState(false)

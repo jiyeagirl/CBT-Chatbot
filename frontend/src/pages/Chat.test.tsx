@@ -4,9 +4,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { mockOptions } from '../api/mockChat'
 import { Chat } from './Chat'
 
-function renderChat() {
+function renderChat(state?: unknown) {
   render(
-    <MemoryRouter initialEntries={['/chat']}>
+    <MemoryRouter initialEntries={[{ pathname: '/chat', state }]}>
       <Routes>
         <Route path="/chat" element={<Chat />} />
         <Route path="/" element={<p>홈</p>} />
@@ -65,6 +65,14 @@ describe('Chat', () => {
     expect(await screen.findByRole('dialog', { name: '지금 많이 힘드신 것 같아요' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '일반 대화로 돌아가기' }))
     expect(screen.queryByRole('dialog', { name: '지금 많이 힘드신 것 같아요' })).not.toBeInTheDocument()
+  })
+
+  it('기록에서 이어가면 그 기록을 언급하는 첫 인사를 보여준다', () => {
+    renderChat({ record: { id: 'r-4', title: '발표 자료 오타 관련 생각 정리' } })
+    expect(
+      screen.getByText("지난번에 '발표 자료 오타 관련 생각 정리' 이야기를 나눴어요. 오늘은 이어서 어떤 이야기를 해볼까요?"),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('안녕하세요. 오늘은 어떤 얘기를 나눠볼까요?')).not.toBeInTheDocument()
   })
 
   it('입력이 비어 있으면 보낼 수 없다', () => {
