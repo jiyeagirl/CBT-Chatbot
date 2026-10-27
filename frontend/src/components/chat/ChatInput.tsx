@@ -1,16 +1,18 @@
 import { useState, type FormEvent } from 'react'
 
 type ChatInputProps = {
-  disabled?: boolean
+  disabled?: boolean // 답변을 받는 중
+  offline?: boolean // 인터넷 연결이 끊겨 보낼 수 없음 (Figma: EX_4_네트워크오류)
   onSend: (text: string) => void
 }
 
-export function ChatInput({ disabled, onSend }: ChatInputProps) {
+export function ChatInput({ disabled, offline, onSend }: ChatInputProps) {
   const [text, setText] = useState('')
+  const blocked = disabled || offline
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (disabled || !text.trim()) return
+    if (blocked || !text.trim()) return
     onSend(text)
     setText('')
   }
@@ -20,15 +22,20 @@ export function ChatInput({ disabled, onSend }: ChatInputProps) {
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="메시지를 입력하세요"
+        disabled={offline}
+        placeholder={offline ? '연결 대기 중...' : '메시지를 입력하세요'}
         aria-label="메시지 입력"
-        className="min-w-0 flex-1 rounded-3xl bg-white px-4 py-3 text-[12.5px]/[normal] shadow-card outline-none placeholder:text-placeholder focus-visible:ring-2 focus-visible:ring-primary/40"
+        className={`min-w-0 flex-1 rounded-3xl px-4 py-3 text-[12.5px]/[normal] outline-none placeholder:text-placeholder focus-visible:ring-2 focus-visible:ring-primary/40 ${
+          offline ? 'bg-field-disabled' : 'bg-white shadow-card'
+        }`}
       />
       <button
         type="submit"
         aria-label="보내기"
-        disabled={disabled || !text.trim()}
-        className="flex size-[42px] shrink-0 items-center justify-center rounded-[21px] bg-primary text-[17px]/[normal] font-bold text-white disabled:opacity-40"
+        disabled={blocked || !text.trim()}
+        className={`flex size-[42px] shrink-0 items-center justify-center rounded-[21px] text-[17px]/[normal] font-bold text-white ${
+          offline ? 'bg-disabled' : 'bg-primary disabled:opacity-40'
+        }`}
       >
         ↑
       </button>

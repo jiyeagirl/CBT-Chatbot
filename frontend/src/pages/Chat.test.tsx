@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { mockOptions } from '../api/mockChat'
@@ -78,5 +78,46 @@ describe('Chat', () => {
   it('입력이 비어 있으면 보낼 수 없다', () => {
     renderChat()
     expect(screen.getByRole('button', { name: '보내기' })).toBeDisabled()
+  })
+})
+
+describe('Chat 네트워크 오류', () => {
+  const setOnline = (online: boolean) => {
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => online })
+    act(() => {
+      window.dispatchEvent(new Event(online ? 'online' : 'offline'))
+    })
+  }
+
+  beforeAll(() => {
+    mockOptions.delayMs = 0
+  })
+  afterEach(() => setOnline(true))
+
+  it('연결이 끊기면 안내를 띄우고 입력을 막는다', () => {
+    renderChat()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    setOnline(false)
+    expect(screen.getByRole('alert')).toHaveTextContent('인터넷 연결을 확인해주세요')
+    const input = screen.getByLabelText('메시지 입력')
+    expect(input).toBeDisabled()
+    expect(input).toHaveAttribute('placeholder', '연결 대기 중...')
+    expect(screen.getByRole('button', { name: '보내기' })).toBeDisabled()
+  })
+
+  it('연결이 돌아오면 안내가 사라지고, 쓰던 글을 그대로 보낼 수 있다', async () => {
+    const user = renderChat()
+    await user.type(screen.getByLabelText('메시지 입력'), '요즘 잠이 안 와요')
+
+    setOnline(false)
+    expect(screen.getByLabelText('메시지 입력')).toHaveValue('요즘 잠이 안 와요')
+    expect(screen.getByRole('button', { name: '보내기' })).toBeDisabled()
+
+    setOnline(true)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('메시지 입력')).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: '보내기' }))
+    expect(screen.getByText('요즘 잠이 안 와요')).toBeInTheDocument()
   })
 })

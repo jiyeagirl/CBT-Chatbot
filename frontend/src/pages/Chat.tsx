@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ChatInput } from '../components/chat/ChatInput'
 import { MessageBubble } from '../components/chat/MessageBubble'
+import { OfflineBanner } from '../components/chat/OfflineBanner'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { CrisisFlow } from '../components/crisis/CrisisFlow'
 import { useChat } from '../hooks/useChat'
+import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { getSession } from '../lib/session'
 
 // 기록 상세의 "이 기록에서 대화 이어가기"에서 넘어오면 그 기록을 첫 인사에 반영한다.
@@ -22,6 +24,7 @@ export function Chat() {
   const [dismissedCrisis, setDismissedCrisis] = useState<string | null>(null)
   const [confirmingEnd, setConfirmingEnd] = useState(false)
   const [offeringSave, setOfferingSave] = useState(false)
+  const online = useOnlineStatus()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -40,7 +43,8 @@ export function Chat() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className="flex items-center justify-between px-4 pt-5 pb-2.5">
+      {!online && <OfflineBanner />}
+      <header className={`flex items-center justify-between px-4 pb-2.5 ${online ? 'pt-5' : 'pt-1.5'}`}>
         <button type="button" onClick={leave} aria-label="뒤로" className="text-[20px]/[normal]">
           ‹
         </button>
@@ -68,7 +72,7 @@ export function Chat() {
         <div ref={bottomRef} />
       </main>
 
-      <ChatInput disabled={busy} onSend={send} />
+      <ChatInput disabled={busy} offline={!online} onSend={send} />
 
       {crisis && crisis.messageId !== dismissedCrisis && (
         <CrisisFlow resources={crisis.resources} onClose={() => setDismissedCrisis(crisis.messageId)} />
