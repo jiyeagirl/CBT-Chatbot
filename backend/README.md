@@ -26,10 +26,26 @@ ruff check .
 ## 구조
 ```
 app/
-├── main.py        # FastAPI 앱, CORS, 라우터 등록
-├── db.py          # SQLAlchemy 엔진/세션 (SQLite ↔ Postgres는 DATABASE_URL로 전환)
-├── core/config.py # .env 설정
-└── api/v1/        # 엔드포인트 (docs/api-spec.md 기준)
+├── main.py            # FastAPI 앱, CORS, 라우터 등록, 상담 알림 예약 확인 시작
+├── db.py              # SQLAlchemy 엔진/세션 (SQLite ↔ Postgres는 DATABASE_URL로 전환)
+├── models.py          # 테이블: users, conversations, messages, crisis_events, counseling_plans, push_subscriptions
+├── core/              # config.py(.env 설정), security.py(JWT·비밀번호), errors.py(오류 형식)
+├── api/v1/            # 엔드포인트 (docs/api-spec.md 기준)
+│   ├── auth.py        #   비회원 토큰, 가입, 로그인, 비회원 → 회원 전환
+│   ├── me.py          #   내 정보, 탈퇴
+│   ├── conversations.py  # 대화, SSE 채팅
+│   ├── plans.py       #   상담 계획, 상담 마치기, 회기·전체 요약
+│   └── push.py        #   웹 푸시 구독, 테스트 알림
+└── services/
+    ├── llm.py         # 모델 호출 (mock / http / runpod), 동시 호출 제한·타임아웃
+    ├── crisis.py      # 위기 감지 키워드, 비식별 기록
+    ├── summary.py     # 다음 대화가 기억할 회기 요약 (사용자에게 안 보임)
+    ├── plans.py       # 사용자에게 보여주는 회기·전체 요약, 알림 시각 계산
+    ├── push.py        # 웹 푸시 발송, 상담 시간 알림 예약 확인
+    └── retention.py   # 보관 기간 지난 데이터 정리
+scripts/
+├── check_model_api.py     # 모델 API 연결 점검
+└── generate_vapid_keys.py # 웹 푸시 키 만들기
 ```
 
 ## 보관 기간 정리 (하루 1회 실행)
