@@ -189,6 +189,7 @@ def test_runpod_summary_modes(monkeypatch):
             "runpod_api_key": "k",
             "runpod_poll_interval": 0,
             "session_summary_prompt": "두 줄로",
+            "plan_summary_prompt": "",  # 비워 두면 summary_prompt 를 보내지 않는다 (모델 기본 지시)
         }
     )
     monkeypatch.setattr(llm, "get_settings", lambda: settings)
