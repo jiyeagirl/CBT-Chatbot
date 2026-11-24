@@ -5,18 +5,21 @@
 """
 
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
 from app.db import SessionLocal
-from app.models import Conversation, CounselingPlan
+from app.models import Conversation, CounselingPlan, User
 from app.services import llm
 
 log = logging.getLogger(__name__)
 
 PENDING_STALE_AFTER = timedelta(minutes=10)
+# 회기 첫 인사를 모델에 보낼 때 앞에 붙이는 사용자 발화. 모델은 대화가 사용자 발화로 시작해야 받는다.
+SESSION_OPENING = "안녕하세요. 오늘 상담을 시작할게요."
 WEEKDAY_LABELS = ("월", "화", "수", "목", "금", "토", "일")
 
 
@@ -159,6 +162,11 @@ async def summarize_plan_if_ready(plan_id: str) -> None:
         payload = [
             {"session_number": s.plan_session_no, "summary": s.session_summary} for s in sessions
         ]
+        if len(sessions) == 1:
+            plan.summary = sessions[0].session_summary
+            plan.summary_status = "done"
+            db.commit()
+            return
         plan.summary_status = "pending"
         plan.summary_requested_at = datetime.now(UTC)
         db.commit()
@@ -177,3 +185,44 @@ async def summarize_plan_if_ready(plan_id: str) -> None:
         plan.summary = text
         plan.summary_status = status
         db.commit()
+
+
+def _first_sentence(text: str | None) -> str | None:
+    if not text:
+        return None
+    for part in re.split(r"(?<=[.!?])\s+|\n+", text.strip()):
+        part = part.strip()
+        if part:
+            return part
+    return None
+
+
+def session_greeting(db, user: User) -> str | None:
+    """진행 중인 계획의 2회기부터, 대화를 시작할 때 상담사가 먼저 건네는 안부 인사.
+
+    모델을 부르지 않고 지난 회기 요약의 첫 문장을 끼워 넣어 바로 보여준다. 1회기·계획 없음·비회원이면 None.
+    """
+    if user.is_guest:
+        return None
+    plan = db.scalars(
+        select(CounselingPlan).where(
+            CounselingPlan.user_id == user.id, CounselingPlan.status == "active"
+        )
+    ).first()
+    if plan is None:
+        return None
+    sessions = db.scalars(
+        select(Conversation)
+        .where(Conversation.plan_id == plan.id)
+        .order_by(Conversation.plan_session_no)
+    ).all()
+    if not sessions:
+        return None
+    last = sessions[-1]
+    name = f"{user.nickname}님, " if user.nickname else ""
+    lines = [f"{name}다시 만나서 반가워요."]
+    recap = _first_sentence(last.session_summary) if last.session_summary_status == "done" else None
+    if recap:
+        lines.append(f"지난 시간에는 {recap}")
+    lines.append("그동안 잘 지내셨어요?")
+    return "\n".join(lines)

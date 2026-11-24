@@ -5,7 +5,17 @@ import { createPlan, deviceTimezone, getCurrentPlan, updateSchedule, type Plan }
 import { Toggle } from '../components/Toggle'
 import { MemberOnly } from '../components/plan/MemberOnly'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { ALL_DAYS, DAYS, daysLabel, DEFAULT_SESSIONS, formatTime, pushHint, SESSION_OPTIONS } from '../lib/plan'
+import {
+  ALL_DAYS,
+  DAYS,
+  daysLabel,
+  DEFAULT_SESSIONS,
+  formatTime,
+  MAX_SESSIONS,
+  MIN_SESSIONS,
+  pushHint,
+  SESSION_OPTIONS,
+} from '../lib/plan'
 import { enablePush, getPushState, type PushState } from '../lib/push'
 import { getSession } from '../lib/session'
 
@@ -25,6 +35,8 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
   const navigate = useNavigate()
   const [existing, setExisting] = useState<Plan | null>(null)
   const [total, setTotal] = useState<number>(DEFAULT_SESSIONS)
+  // "직접 입력"을 골랐을 때 입력칸의 글자. 비어 있거나 범위를 벗어나면 계획을 시작할 수 없다.
+  const [custom, setCustom] = useState<string | null>(null)
   const [weekdays, setWeekdays] = useState<number[]>(ALL_DAYS)
   const [time, setTime] = useState('22:00')
   const [notify, setNotify] = useState(true)
@@ -53,7 +65,16 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
     setWeekdays((list) => (list.includes(day) ? list.filter((d) => d !== day) : [...list, day].sort()))
 
   const canAskPush = pushState === 'off'
-  const valid = weekdays.length > 0 && /^\d{2}:\d{2}$/.test(time)
+  const customCount = custom === null ? null : Number(custom)
+  const customValid =
+    customCount !== null &&
+    custom !== '' &&
+    Number.isInteger(customCount) &&
+    customCount >= MIN_SESSIONS &&
+    customCount <= MAX_SESSIONS
+  const sessions = custom === null ? total : customCount
+  const sessionsValid = mode !== 'new' || custom === null || customValid
+  const valid = weekdays.length > 0 && /^\d{2}:\d{2}$/.test(time) && sessionsValid
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -66,7 +87,7 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
     try {
       const schedule = { weekdays, time, timezone: deviceTimezone() }
       if (mode === 'edit' && existing) await updateSchedule(existing.id, schedule)
-      else await createPlan({ ...schedule, totalSessions: total })
+      else await createPlan({ ...schedule, totalSessions: sessions as number })
       navigate('/plan', { replace: true, state: { saved: mode, push } })
     } catch (err) {
       if (err instanceof ApiError && err.code === 'plan_exists') {
@@ -102,18 +123,55 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
           <fieldset className="flex flex-col gap-2.5">
             <legend className="pb-2.5 text-[14px]/[normal] font-bold">몇 번 상담할까요?</legend>
             <div className="flex flex-wrap gap-2">
-              {SESSION_OPTIONS.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-pressed={total === n}
-                  onClick={() => setTotal(n)}
-                  className={chip(total === n)}
-                >
-                  {n}회
-                </button>
-              ))}
+              {SESSION_OPTIONS.map((n) => {
+                const on = custom === null && total === n
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      setTotal(n)
+                      setCustom(null)
+                    }}
+                    className={chip(on)}
+                  >
+                    {n}회
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                aria-pressed={custom !== null}
+                onClick={() => setCustom((value) => value ?? '')}
+                className={chip(custom !== null)}
+              >
+                직접 입력
+              </button>
             </div>
+            {custom !== null && (
+              <label className="flex items-center gap-2.5">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_SESSIONS}
+                  max={MAX_SESSIONS}
+                  step={1}
+                  autoFocus
+                  value={custom}
+                  onChange={(e) => setCustom(e.target.value)}
+                  placeholder={`${MIN_SESSIONS}~${MAX_SESSIONS}`}
+                  aria-label="상담 횟수"
+                  className="w-24 rounded-xl bg-field px-4 py-3 text-[15px]/[normal] outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                />
+                <span className="text-[14px]/[normal]">회</span>
+              </label>
+            )}
+            {custom !== null && custom !== '' && !customValid && (
+              <p className="text-[11.5px]/[normal] text-danger">
+                {MIN_SESSIONS}회에서 {MAX_SESSIONS}회 사이로 입력해 주세요
+              </p>
+            )}
           </fieldset>
         )}
 
@@ -175,7 +233,7 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
           {valid && (
             <p className="text-center text-[12.5px]/[1.6] text-muted">
               {daysLabel(weekdays)} {formatTime(time)}
-              {mode === 'new' && `에 ${total}번의 상담을 함께해요`}
+              {mode === 'new' && `에 ${sessions}번의 상담을 함께해요`}
             </p>
           )}
           {error && (

@@ -81,8 +81,10 @@ function ChatScreen({ existingId }: { existingId?: string }) {
     else go()
   }
 
-  const isNewAndEmpty = !existingId && messages.length === 0
   const activePlan = plan?.status === 'active' ? plan : null
+  // 2회기부터는 새 대화를 상담사의 안부 인사로 연다. 서버도 대화를 만들 때 같은 인사를 첫 메시지로 저장한다.
+  const greeting = !existingId && !isGuest ? (activePlan?.greeting ?? null) : null
+  const isNewAndEmpty = !existingId && messages.length === 0 && !greeting
   const talked = messages.some((m) => m.role === 'user' && m.status === 'sent')
   const canFinish = !!activePlan && !completedSession && talked && !busy
 
@@ -139,17 +141,33 @@ function ChatScreen({ existingId }: { existingId?: string }) {
             )}
           </div>
         ) : (
-          messages.map((m) => (
-            <MessageBubble
-              key={m.id}
-              role={m.role}
-              failed={m.status === 'failed'}
-              failReason={m.failReason}
-              onRetry={() => retry(m.id)}
-            >
-              {m.content}
-            </MessageBubble>
-          ))
+          <>
+            {greeting && activePlan && (
+              <>
+                <Link
+                  to="/plan"
+                  className="flex items-center gap-2 self-center rounded-full bg-tag-bg px-4 py-2 text-[12.5px]/[normal] font-bold text-primary-ink"
+                >
+                  오늘은 {activePlan.completedSessions + 1}회기 상담이에요
+                  <span className="font-normal">
+                    ({activePlan.completedSessions}/{activePlan.totalSessions})
+                  </span>
+                </Link>
+                <MessageBubble role="assistant">{greeting}</MessageBubble>
+              </>
+            )}
+            {messages.map((m) => (
+              <MessageBubble
+                key={m.id}
+                role={m.role}
+                failed={m.status === 'failed'}
+                failReason={m.failReason}
+                onRetry={() => retry(m.id)}
+              >
+                {m.content}
+              </MessageBubble>
+            ))}
+          </>
         )}
         <div ref={bottomRef} />
       </main>

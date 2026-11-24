@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { cancelPlan, retryPlanSummary, type Plan, type PlanSession } from '../api/plans'
+import { cancelPlan, retryPlanSummary, type Plan } from '../api/plans'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { Mascot } from '../components/Mascot'
 import { MemberOnly } from '../components/plan/MemberOnly'
 import { SessionStamps } from '../components/plan/SessionStamps'
+import { SessionTimeline } from '../components/plan/SessionTimeline'
 import { SummaryCard } from '../components/plan/SummaryCard'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useCurrentPlan } from '../hooks/usePlan'
@@ -15,7 +16,7 @@ import { daysLabel, formatTime, pushHint } from '../lib/plan'
 
 const card = 'rounded-hero bg-white p-5 shadow-card'
 
-// 상담 계획(/plan): 진행 상황(도장), 다음 상담 시각, 알림, 마친 회기 목록, 다 마치면 전체 요약.
+// 상담 계획(/plan): 진행 상황(도장), 다음 상담 시각, 알림, 회기 타임라인, 다 마치면 전체 요약.
 export function PlanPage() {
   useDocumentTitle('상담 계획')
   if (getSession()?.kind !== 'user') return <MemberOnly />
@@ -126,7 +127,7 @@ function ActivePlan({ plan, onCancel }: { plan: Plan; onCancel: () => void }) {
 
       <PushCard />
 
-      <SessionList sessions={plan.sessions} />
+      <SessionTimeline sessions={plan.sessions} total={plan.totalSessions} />
 
       <div className="mt-2 flex justify-center gap-4 text-[12.5px]/[normal]">
         <Link to="/plan/edit" className="px-2 py-2 text-primary-ink">
@@ -166,7 +167,7 @@ function CompletedPlan({ plan, onRetry }: { plan: Plan; onRetry: () => void }) {
         pendingText="모든 회기를 돌아보며 정리하고 있어요"
       />
 
-      <SessionList sessions={plan.sessions} />
+      <SessionTimeline sessions={plan.sessions} total={plan.totalSessions} />
 
       <Link
         to="/plan/new"
@@ -175,38 +176,6 @@ function CompletedPlan({ plan, onRetry }: { plan: Plan; onRetry: () => void }) {
         새 상담 계획 세우기
       </Link>
     </>
-  )
-}
-
-function SessionList({ sessions }: { sessions: PlanSession[] }) {
-  if (sessions.length === 0) return null
-  return (
-    <nav aria-label="마친 회기" className="flex flex-col gap-2">
-      <h2 className="px-1 pt-1.5 text-[13px]/[normal] font-bold text-muted">마친 회기</h2>
-      <ul className="overflow-hidden rounded-xl bg-white shadow-card">
-        {sessions.map((s, i) => (
-          <li key={s.conversationId}>
-            {i > 0 && <div className="mx-4 h-px bg-line" />}
-            <Link to={`/plan/session/${s.conversationId}`} className="flex items-center gap-3 px-4 py-3.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tag-bg text-[12px] font-bold text-primary-ink">
-                {s.number}
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-[13px]/[16px]">{s.title ?? `${s.number}회기 상담`}</span>
-                <span className="text-[10.5px]/[13px] text-muted">
-                  {formatMonthDay(s.completedAt)}
-                  {s.summaryStatus === 'pending' && ' · 요약 정리 중'}
-                  {s.summaryStatus === 'failed' && ' · 요약 실패'}
-                </span>
-              </span>
-              <span aria-hidden className="text-[15px]/[16px] text-muted">
-                ›
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
   )
 }
 

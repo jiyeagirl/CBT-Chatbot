@@ -1,8 +1,11 @@
 // 상담 계획 화면에서 같이 쓰는 값과 문구
 import type { PushState } from './push'
 
-export const SESSION_OPTIONS = [3, 5, 8, 10] as const
+export const SESSION_OPTIONS = [2, 3, 5, 8, 10] as const
 export const DEFAULT_SESSIONS = 5
+// 직접 입력할 수 있는 회기 수 범위. 백엔드 plans.py 의 MIN_SESSIONS · MAX_SESSIONS 와 같다.
+export const MIN_SESSIONS = 1
+export const MAX_SESSIONS = 12
 export const DAYS = ['월', '화', '수', '목', '금', '토', '일']
 export const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
 
