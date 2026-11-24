@@ -1,4 +1,5 @@
 import type { SummaryStatus } from '../../api/plans'
+import { summarySentences } from '../../lib/format'
 
 type SummaryCardProps = {
   heading: string
@@ -9,7 +10,7 @@ type SummaryCardProps = {
   pendingText?: string
 }
 
-// 모델이 만든 요약 문장을 한 줄씩 나눠 보기 좋게 보여준다.
+// 모델이 만든 요약을 한 문장씩 불릿으로 나눠 보여준다.
 export function SummaryCard({
   heading,
   meta,
@@ -18,10 +19,7 @@ export function SummaryCard({
   onRetry,
   pendingText = '오늘 나눈 이야기를 정리하고 있어요',
 }: SummaryCardProps) {
-  const lines = (summary ?? '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
+  const lines = summarySentences(summary)
 
   return (
     <section aria-label={heading} className="flex flex-col gap-3 rounded-hero bg-white p-5 shadow-card">
