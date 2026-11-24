@@ -47,16 +47,48 @@ CBT(인지행동치료) 원리를 바탕으로 생각을 함께 정리해 주는
 
 ## 주요 기능
 
-| 기능 | 설명 |
-|---|---|
-| 💬 **CBT 상담 대화** | 팀이 학습한 상담 모델(Qwen3.5 27B, RunPod 서버리스)과 대화합니다. 답변은 SSE로 흘려 보여 줍니다 |
-| 🆘 **위기 감지** | 위기 표현(키워드 54개, [초안](docs/crisis-keywords-draft.md))이 나오면 모델을 호출하지 않고 고정 문구와 상담 전화 연결 화면을 띄웁니다. 기록은 사용자와 연결되지 않는 형태로만 남깁니다 |
-| 🗓️ **상담 계획 · 알림** | 몇 회기(2·3·5·8·10회 또는 1~12회 직접 입력)를 어느 요일·시각에 할지 정하면 그 시각에 웹 푸시로 알려 줍니다. 2회기부터는 지난 회기를 짚는 인사로 대화를 시작합니다 |
-| ✅ **회기 도장 · 요약** | 대화에서 "상담 마치기"를 누르면 회기 도장이 찍히고, 오늘 나눈 이야기를 요약해 줍니다. 모든 회기를 마치면 전체 회기를 돌아보는 요약과 회기 타임라인을 보여 줍니다 |
-| 🧠 **이전 대화 기억** | 회기마다 기억용 요약을 저장해 다음 대화에 이어서 씁니다 |
-| 👤 **비회원으로 시작** | 가입 없이 바로 쓰고, 나중에 가입하면 대화가 그대로 이어집니다 |
-| 📱 **설치형 웹 앱 (PWA)** | 홈 화면에 설치하고, 오프라인에서도 앱이 열립니다 |
-| 🔒 **개인정보** | 보관 기간이 지난 기록을 지우는 정리 작업(하루 1회 실행)과 전체 기록 삭제·탈퇴를 지원합니다 |
+<table>
+  <tr>
+    <td valign="top" width="50%">
+      <b>💬 CBT 상담 대화</b><br />
+      팀이 학습한 상담 모델(Qwen3.5 27B, RunPod 서버리스)과 대화합니다. 답변은 SSE로 흘려 보여 줍니다
+    </td>
+    <td valign="top" width="50%">
+      <b>🆘 위기 감지</b><br />
+      위기 표현(키워드 54개, <a href="docs/crisis-keywords-draft.md">초안</a>)이 나오면 모델을 호출하지 않고 고정 문구와 상담 전화 연결 화면을 띄웁니다. 기록은 사용자와 연결되지 않는 형태로만 남깁니다
+    </td>
+  </tr>
+  <tr>
+    <td valign="top" width="50%">
+      <b>🗓️ 상담 계획 · 알림</b><br />
+      몇 회기(2·3·5·8·10회 또는 1~12회 직접 입력)를 어느 요일·시각에 할지 정하면 그 시각에 웹 푸시로 알려 줍니다. 2회기부터는 지난 회기를 짚는 인사로 대화를 시작합니다
+    </td>
+    <td valign="top" width="50%">
+      <b>✅ 회기 도장 · 요약</b><br />
+      대화에서 "상담 마치기"를 누르면 회기 도장이 찍히고, 오늘 나눈 이야기를 요약해 줍니다. 모든 회기를 마치면 전체 회기를 돌아보는 요약과 회기 타임라인을 보여 줍니다
+    </td>
+  </tr>
+  <tr>
+    <td valign="top" width="50%">
+      <b>🧠 이전 대화 기억</b><br />
+      회기마다 기억용 요약을 저장해 다음 대화에 이어서 씁니다
+    </td>
+    <td valign="top" width="50%">
+      <b>👤 비회원으로 시작</b><br />
+      가입 없이 바로 쓰고, 나중에 가입하면 대화가 그대로 이어집니다
+    </td>
+  </tr>
+  <tr>
+    <td valign="top" width="50%">
+      <b>📱 설치형 웹 앱 (PWA)</b><br />
+      홈 화면에 설치하고, 오프라인에서도 앱이 열립니다
+    </td>
+    <td valign="top" width="50%">
+      <b>🔒 개인정보</b><br />
+      보관 기간이 지난 기록을 지우는 정리 작업(하루 1회 실행)과 전체 기록 삭제·탈퇴를 지원합니다
+    </td>
+  </tr>
+</table>
 
 <br />
 
@@ -114,16 +146,14 @@ sequenceDiagram
 
 ## 기술 스택
 
-| 영역 | 사용 기술 |
-|---|---|
-| 프론트엔드 | TypeScript, React 19, React Router 7, Vite 8, Tailwind CSS 4, `vite-plugin-pwa`(Workbox) |
-| 백엔드 | Python 3, FastAPI, Uvicorn, Pydantic Settings, `httpx`, `pywebpush` |
-| 데이터베이스 | SQLAlchemy 2 + Alembic. 로컬 SQLite, 배포 Supabase(Postgres, `psycopg`) |
-| 인증 | 직접 구현한 JWT(PyJWT), 비밀번호 해시는 `scrypt` (비회원 → 회원 전환 지원) |
-| 실시간 응답 · 알림 | SSE(Server-Sent Events), Web Push(VAPID) |
-| 상담 모델 | Qwen3.5 27B + DPO LoRA, RunPod 서버리스. 호출 방법: [`model/README.md`](model/README.md) |
-| 테스트 · 린트 | 프론트: Vitest, Testing Library, oxlint · 백엔드: pytest, ruff |
-| 디자인 · 협업 | Figma, GitHub(PR 리뷰), CodeRabbit 자동 리뷰 |
+- **프론트엔드**: TypeScript, React 19, React Router 7, Vite 8, Tailwind CSS 4, `vite-plugin-pwa`(Workbox)
+- **백엔드**: Python 3, FastAPI, Uvicorn, Pydantic Settings, `httpx`, `pywebpush`
+- **데이터베이스**: SQLAlchemy 2 + Alembic. 로컬 SQLite, 배포 Supabase(Postgres, `psycopg`)
+- **인증**: 직접 구현한 JWT(PyJWT), 비밀번호 해시는 `scrypt` (비회원 → 회원 전환 지원)
+- **실시간 응답 · 알림**: SSE(Server-Sent Events), Web Push(VAPID)
+- **상담 모델**: Qwen3.5 27B + DPO LoRA, RunPod 서버리스. 호출 방법: [`model/README.md`](model/README.md)
+- **테스트 · 린트**: 프론트: Vitest, Testing Library, oxlint · 백엔드: pytest, ruff
+- **디자인 · 협업**: Figma, GitHub(PR 리뷰), CodeRabbit 자동 리뷰
 
 <br />
 
@@ -216,6 +246,28 @@ npm test && npm run lint && npm run typecheck
 
 <br />
 
+## 팀
+
+<table>
+  <tr>
+    <td align="center" width="200">
+      <a href="https://github.com/jiyeagirl"><img src="https://github.com/jiyeagirl.png?size=200" width="88" alt="지예" /></a><br />
+      <b>지예</b><br />
+      <a href="https://github.com/jiyeagirl"><sub>jiyeagirl</sub></a><br />
+      <sub>프론트엔드 · 백엔드</sub>
+    </td>
+    <td align="center" width="200">
+      <a href="https://github.com/hyunsoo00kim"><img src="https://github.com/hyunsoo00kim.png?size=200" width="88" alt="현수" /></a><br />
+      <b>현수</b><br />
+      <a href="https://github.com/hyunsoo00kim"><sub>hyunsoo00kim</sub></a><br />
+      <a href="https://github.com/gustn1686-debug"><sub>gustn1686-debug</sub></a><br />
+      <sub>상담 모델 학습 · 서빙</sub>
+    </td>
+  </tr>
+</table>
+
+<br />
+
 ## 협업 규칙
 
 - `main`에 직접 push하지 않고 **브랜치 → PR → 리뷰 → merge**
@@ -223,15 +275,3 @@ npm test && npm run lint && npm run typecheck
 - 커밋 메시지: `종류: 내용` (`feat`, `fix`, `style`, `refactor`, `docs`, `chore`, `test`)
 - 비밀 값(API 키, 푸시 개인키, DB 주소)은 루트 `.env`에만 두고 커밋하지 않습니다
 - 모델 가중치·데이터셋은 Hugging Face Hub 비공개 저장소에서 관리합니다
-
-<br />
-
-## 현재 상태와 남은 일
-
-- [x] 비회원/회원 인증, 대화 · SSE 스트리밍, 위기 감지, 이전 대화 기억
-- [x] 팀 모델(RunPod) 연결, 동시 호출 제한 · 타임아웃
-- [x] 상담 계획, 웹 푸시 알림, 회기 · 전체 요약
-- [ ] 배포 (AWS + Supabase)와 https 주소 — 아이폰 알림은 배포 후 홈 화면에 설치해야 받을 수 있습니다
-- [ ] CI (PR마다 자동 테스트)
-- [ ] 위기 문구 · 키워드 · 전화번호 전문가 검토
-- [ ] 실제 모델로 회기 · 전체 요약 품질 확인
