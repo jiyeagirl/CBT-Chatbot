@@ -17,6 +17,7 @@ from app.core.errors import AppError
 from app.db import SessionLocal, get_db
 from app.models import Conversation, Message, User
 from app.services import llm, summary
+from app.services import plans as plan_service
 from app.services.crisis import CRISIS_MESSAGE, CRISIS_RESOURCES, detect_crisis, log_crisis_event
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
@@ -91,6 +92,11 @@ def create_conversation(
     except IntegrityError:  # 같은 사용자가 동시에 만들어 회기 번호가 겹친 경우
         db.rollback()
         raise AppError(409, "conflict", "잠시 후 다시 시도해 주세요.") from None
+    # 상담 계획 2회기부터는 상담사가 먼저 안부를 묻는 인사로 대화를 연다.
+    greeting = plan_service.session_greeting(db, user)
+    if greeting:
+        db.add(Message(conversation_id=c.id, seq=1, role="assistant", content=greeting))
+        db.commit()
     db.refresh(c)
     # 새 대화를 시작하면, 요약이 없는 이전 대화를 뒤에서 요약해 둔다 (첫 메시지 전에 대부분 끝난다).
     background.add_task(summary.summarize_stale, user.id, c.id)
@@ -261,6 +267,9 @@ async def send_message(
     db.commit()
     assistant_id = assistant.id
     history = _alternating([*previous, {"role": "user", "content": content}])
+    if history and history[0]["role"] == "assistant":
+        # 상담사 인사로 시작한 대화: 모델은 사용자 발화로 시작해야 받으므로 여는 말을 앞에 붙인다.
+        history = [{"role": "user", "content": plan_service.SESSION_OPENING}, *history]
     memory = None if crisis else summary.build_memory(db, user.id, c.id)
 
     async def events() -> AsyncIterator[str]:

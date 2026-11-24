@@ -38,6 +38,8 @@ export type Plan = {
   sessions: PlanSession[]
   summaryStatus: SummaryStatus
   summary: string | null
+  // 2회기부터 새 대화를 열 때 상담사가 먼저 건네는 인사 (진행 중인 계획만, 없으면 null)
+  greeting?: string | null
 }
 
 export type Schedule = { weekdays: number[]; time: string; timezone: string }
@@ -68,6 +70,7 @@ type RawPlan = {
   sessions: RawSession[]
   summary_status: SummaryStatus
   summary: string | null
+  greeting?: string | null
 }
 
 const toSession = (s: RawSession): PlanSession => ({
@@ -94,6 +97,7 @@ const toPlan = (p: RawPlan): Plan => ({
   sessions: p.sessions.map(toSession),
   summaryStatus: p.summary_status,
   summary: p.summary,
+  greeting: p.greeting ?? null,
 })
 
 const toResult = (body: { session: RawSession; plan: RawPlan }): SessionResult => ({
