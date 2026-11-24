@@ -48,3 +48,13 @@ export function formatMonthDayTime(iso: string, timeZone?: string): string {
   const hour = p.hour % 12 === 0 ? 12 : p.hour % 12
   return `${formatMonthDay(iso, timeZone)} ${p.hour < 12 ? '오전' : '오후'} ${hour}:${p.minute}`
 }
+
+// 모델 요약(한 문단일 때가 많다) → 불릿으로 보여줄 문장 목록.
+// 줄바꿈과 문장 끝(. ! ? 뒤 공백)에서 나누고, 모델이 붙인 "-", "•", "1." 같은 머리표는 뗀다.
+export function summarySentences(summary: string | null | undefined): string[] {
+  return (summary ?? '')
+    .split('\n')
+    .flatMap((line) => line.split(/(?<=[.!?])\s+/))
+    .map((s) => s.replace(/^\s*(?:[-•*·]|\d+[.)])\s+/, '').trim())
+    .filter(Boolean)
+}
