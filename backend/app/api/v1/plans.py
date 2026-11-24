@@ -117,6 +117,10 @@ def plan_out(db: Session, plan: CounselingPlan) -> dict:
         "sessions": [session_out(c, plan.total_sessions) for c in sessions],
         "summary_status": summary_status,
         "summary": plan.summary if summary_status == "done" else None,
+        # 2회기부터 새 대화를 시작할 때 상담사가 먼저 건네는 인사 (진행 중인 계획만)
+        "greeting": plan_service.session_greeting(db, db.get(User, plan.user_id))
+        if plan.status == "active"
+        else None,
     }
 
 
