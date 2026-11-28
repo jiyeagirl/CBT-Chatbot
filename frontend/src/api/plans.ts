@@ -129,9 +129,11 @@ export async function createPlan(input: NewPlan): Promise<Plan> {
   return toPlan((await res.json()).plan)
 }
 
-export async function updateSchedule(planId: string, schedule: Schedule): Promise<Plan> {
-  if (useMock) return mockUpdateSchedule(schedule)
-  const res = await request(`/plans/${planId}`, { method: 'PATCH', body: JSON.stringify(schedule) })
+// 요일·시각·시간대와, 넘기면 회기 수도 바꾼다. (회기 수는 이미 마친 회기보다 많아야 한다)
+export async function updateSchedule(planId: string, schedule: Schedule, totalSessions?: number): Promise<Plan> {
+  if (useMock) return mockUpdateSchedule(schedule, totalSessions)
+  const body = totalSessions === undefined ? schedule : { ...schedule, total_sessions: totalSessions }
+  const res = await request(`/plans/${planId}`, { method: 'PATCH', body: JSON.stringify(body) })
   return toPlan((await res.json()).plan)
 }
 
