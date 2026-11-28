@@ -90,8 +90,15 @@ export async function mockCreatePlan(input: NewPlan): Promise<Plan> {
   return structuredClone(plan)
 }
 
-export async function mockUpdateSchedule(schedule: Schedule): Promise<Plan> {
+export async function mockUpdateSchedule(schedule: Schedule, totalSessions?: number): Promise<Plan> {
   if (!plan) throw new ApiError('not_found', '상담 계획을 찾을 수 없습니다.')
+  if (totalSessions !== undefined) {
+    const done = plan.completedSessions
+    if (totalSessions <= done)
+      throw new ApiError('sessions_too_few', `이미 ${done}회기를 마쳤어요. ${done + 1}회 이상으로 정해 주세요.`)
+    plan.totalSessions = totalSessions
+    plan.sessions = plan.sessions.map((s) => ({ ...s, total: totalSessions }))
+  }
   Object.assign(plan, {
     weekdays: [...schedule.weekdays].sort(),
     time: schedule.time,

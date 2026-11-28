@@ -76,6 +76,11 @@ class CreatePlan(Schedule):
     total_sessions: int = Field(ge=MIN_SESSIONS, le=MAX_SESSIONS)
 
 
+class UpdatePlan(Schedule):
+    # 빠지면 회기 수는 그대로 둔다. 이미 마친 회기보다 많아야 한다 (남은 회기가 하나 이상).
+    total_sessions: int | None = Field(default=None, ge=MIN_SESSIONS, le=MAX_SESSIONS)
+
+
 def _sessions(db: Session, plan_id: str) -> list[Conversation]:
     return list(
         db.scalars(
@@ -175,13 +180,22 @@ def create_plan(
 @router.patch("/plans/{plan_id}")
 def update_schedule(
     plan_id: str,
-    body: Schedule,
+    body: UpdatePlan,
     user: User = Depends(require_member),
     db: Session = Depends(get_db),
 ) -> dict:
     plan = _owned_plan(db, user, plan_id)
     if plan.status != "active":
-        raise AppError(409, "plan_not_active", "진행 중인 계획만 일정을 바꿀 수 있어요.")
+        raise AppError(409, "plan_not_active", "진행 중인 계획만 바꿀 수 있어요.")
+    if body.total_sessions is not None:
+        done = len(_sessions(db, plan.id))
+        if body.total_sessions <= done:
+            raise AppError(
+                422,
+                "sessions_too_few",
+                f"이미 {done}회기를 마쳤어요. {done + 1}회 이상으로 정해 주세요.",
+            )
+        plan.total_sessions = body.total_sessions
     plan.weekdays = body.weekdays
     plan.remind_time = body.time
     plan.timezone = body.timezone

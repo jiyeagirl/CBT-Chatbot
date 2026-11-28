@@ -24,9 +24,9 @@ const chip = (on: boolean) =>
     on ? 'bg-primary text-white' : 'bg-surface-muted text-ink'
   }`
 
-// 상담 계획 세우기(/plan/new) · 일정 바꾸기(/plan/edit)
+// 상담 계획 세우기(/plan/new) · 계획 바꾸기(/plan/edit)
 export function PlanSetup({ mode }: { mode: 'new' | 'edit' }) {
-  useDocumentTitle(mode === 'new' ? '상담 계획 세우기' : '상담 일정 바꾸기')
+  useDocumentTitle(mode === 'new' ? '상담 계획 세우기' : '상담 계획 바꾸기')
   if (getSession()?.kind !== 'user') return <MemberOnly />
   return <PlanForm mode={mode} />
 }
@@ -58,6 +58,8 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
       setExisting(plan)
       setWeekdays(plan.weekdays)
       setTime(plan.time)
+      setTotal(plan.totalSessions)
+      if (!(SESSION_OPTIONS as readonly number[]).includes(plan.totalSessions)) setCustom(String(plan.totalSessions))
     })
   }, [mode, navigate])
 
@@ -65,15 +67,18 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
     setWeekdays((list) => (list.includes(day) ? list.filter((d) => d !== day) : [...list, day].sort()))
 
   const canAskPush = pushState === 'off'
+  // 계획을 바꿀 때는 이미 마친 회기보다 많아야 한다 (남은 회기가 하나 이상).
+  const done = mode === 'edit' && existing ? existing.completedSessions : 0
+  const minSessions = Math.max(MIN_SESSIONS, done + 1)
   const customCount = custom === null ? null : Number(custom)
   const customValid =
     customCount !== null &&
     custom !== '' &&
     Number.isInteger(customCount) &&
-    customCount >= MIN_SESSIONS &&
+    customCount >= minSessions &&
     customCount <= MAX_SESSIONS
   const sessions = custom === null ? total : customCount
-  const sessionsValid = mode !== 'new' || custom === null || customValid
+  const sessionsValid = custom === null ? total >= minSessions : customValid
   const valid = weekdays.length > 0 && /^\d{2}:\d{2}$/.test(time) && sessionsValid
 
   const submit = async (e: FormEvent) => {
@@ -86,7 +91,8 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
     if (notify && canAskPush) push = await enablePush().catch(() => pushState)
     try {
       const schedule = { weekdays, time, timezone: deviceTimezone() }
-      if (mode === 'edit' && existing) await updateSchedule(existing.id, schedule)
+      if (mode === 'edit' && existing)
+        await updateSchedule(existing.id, schedule, sessions !== existing.totalSessions ? (sessions as number) : undefined)
       else await createPlan({ ...schedule, totalSessions: sessions as number })
       navigate('/plan', { replace: true, state: { saved: mode, push } })
     } catch (err) {
@@ -110,18 +116,23 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
       <form onSubmit={submit} className="flex flex-1 flex-col gap-6 px-5 pt-1 pb-8">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-[19px]/[normal] font-bold">
-            {mode === 'new' ? '상담 계획 세우기' : '상담 일정 바꾸기'}
+            {mode === 'new' ? '상담 계획 세우기' : '상담 계획 바꾸기'}
           </h1>
           <p className="text-[12.5px]/[1.6] text-muted">
             {mode === 'new'
               ? '정해 둔 시간에 알려 드릴게요. 한 번의 대화를 마칠 때마다 한 회기가 채워져요.'
-              : '바꾼 일정은 다음 알림부터 적용돼요.'}
+              : '바꾼 계획은 다음 알림부터 적용돼요.'}
           </p>
         </div>
 
-        {mode === 'new' && (
+        {(mode === 'new' || existing) && (
           <fieldset className="flex flex-col gap-2.5">
             <legend className="pb-2.5 text-[14px]/[normal] font-bold">몇 번 상담할까요?</legend>
+            {done > 0 && (
+              <p className="-mt-1 text-[11.5px]/[normal] text-muted">
+                이미 {done}회기를 마쳤어요. {minSessions}회 이상으로 정할 수 있어요.
+              </p>
+            )}
             <div className="flex flex-wrap gap-2">
               {SESSION_OPTIONS.map((n) => {
                 const on = custom === null && total === n
@@ -130,11 +141,12 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
                     key={n}
                     type="button"
                     aria-pressed={on}
+                    disabled={n < minSessions}
                     onClick={() => {
                       setTotal(n)
                       setCustom(null)
                     }}
-                    className={chip(on)}
+                    className={`${chip(on)} disabled:opacity-35`}
                   >
                     {n}회
                   </button>
@@ -154,13 +166,13 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
                 <input
                   type="number"
                   inputMode="numeric"
-                  min={MIN_SESSIONS}
+                  min={minSessions}
                   max={MAX_SESSIONS}
                   step={1}
-                  autoFocus
+                  autoFocus={custom === ''}
                   value={custom}
                   onChange={(e) => setCustom(e.target.value)}
-                  placeholder={`${MIN_SESSIONS}~${MAX_SESSIONS}`}
+                  placeholder={`${minSessions}~${MAX_SESSIONS}`}
                   aria-label="상담 횟수"
                   className="w-24 rounded-xl bg-field px-4 py-3 text-[15px]/[normal] outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 />
@@ -169,7 +181,7 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
             )}
             {custom !== null && custom !== '' && !customValid && (
               <p className="text-[11.5px]/[normal] text-danger">
-                {MIN_SESSIONS}회에서 {MAX_SESSIONS}회 사이로 입력해 주세요
+                {minSessions}회에서 {MAX_SESSIONS}회 사이로 입력해 주세요
               </p>
             )}
           </fieldset>
@@ -233,7 +245,7 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
           {valid && (
             <p className="text-center text-[12.5px]/[1.6] text-muted">
               {daysLabel(weekdays)} {formatTime(time)}
-              {mode === 'new' && `에 ${sessions}번의 상담을 함께해요`}
+              {`에 ${sessions}번의 상담을 함께해요`}
             </p>
           )}
           {error && (
@@ -246,7 +258,7 @@ function PlanForm({ mode }: { mode: 'new' | 'edit' }) {
             disabled={!valid || submitting}
             className="w-full rounded-button bg-primary py-4 text-[15px]/[normal] font-bold text-white disabled:bg-disabled"
           >
-            {mode === 'new' ? '계획 시작하기' : '일정 저장'}
+            {mode === 'new' ? '계획 시작하기' : '계획 저장'}
           </button>
         </div>
       </form>

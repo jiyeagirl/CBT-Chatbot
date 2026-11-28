@@ -48,7 +48,7 @@ function PlanScreen() {
         <h1 className="text-[19px]/[normal] font-bold">상담 계획</h1>
         {saved?.saved && (
           <p role="status" className="rounded-xl bg-guest-bg px-4 py-3 text-[12.5px]/[1.6] text-primary-ink">
-            {saved.saved === 'new' ? '상담 계획을 시작했어요.' : '일정을 바꿨어요.'}
+            {saved.saved === 'new' ? '상담 계획을 시작했어요.' : '계획을 바꿨어요.'}
             {saved.push && saved.push !== 'on' && pushHint(saved.push) && ` ${pushHint(saved.push)}`}
           </p>
         )}
@@ -86,7 +86,7 @@ function EmptyPlan() {
     <div className="flex flex-1 flex-col items-center justify-center gap-5 pb-10 text-center">
       <Mascot variant="main" width={96} height={112} />
       <div className="flex flex-col gap-2">
-        <h2 className="text-[17px]/[normal] font-bold">상담 일정을 정해 볼까요?</h2>
+        <h2 className="text-[17px]/[normal] font-bold">상담 계획을 세워 볼까요?</h2>
         <p className="text-[12.5px]/[1.7] text-muted">
           원하는 요일과 시간에 알림을 보내 드려요.
           <br />
@@ -131,7 +131,7 @@ function ActivePlan({ plan, onCancel }: { plan: Plan; onCancel: () => void }) {
 
       <div className="mt-2 flex justify-center gap-4 text-[12.5px]/[normal]">
         <Link to="/plan/edit" className="px-2 py-2 text-primary-ink">
-          일정 바꾸기
+          계획 바꾸기
         </Link>
         <span aria-hidden className="py-2 text-line">
           |

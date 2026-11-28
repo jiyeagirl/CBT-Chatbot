@@ -61,10 +61,10 @@ describe('상담 계획', () => {
     expect(screen.getByRole('link', { name: '가입하기' })).toHaveAttribute('href', '/signup')
   })
 
-  it('계획이 없으면 새 대화 화면에서 일정을 정하자고 안내한다 (비회원에게는 보이지 않는다)', async () => {
+  it('계획이 없으면 새 대화 화면에서 계획을 세우자고 안내한다 (비회원에게는 보이지 않는다)', async () => {
     member()
     renderApp('/')
-    expect(await screen.findByRole('link', { name: '상담 일정을 정해 볼까요? ›' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: '상담 계획을 세워 볼까요? ›' })).toHaveAttribute(
       'href',
       '/plan/new',
     )

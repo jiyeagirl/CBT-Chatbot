@@ -130,7 +130,7 @@ function ChatScreen({ existingId }: { existingId?: string }) {
               !isGuest &&
               planLoaded && (
                 <Link to="/plan/new" className="text-[12.5px]/[normal] text-primary-ink underline underline-offset-4">
-                  상담 일정을 정해 볼까요? ›
+                  상담 계획을 세워 볼까요? ›
                 </Link>
               )
             )}
